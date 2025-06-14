@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Search, Play, Pause, Volume2, SkipForward, SkipBack } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,52 +43,66 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(searchQuery)}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
-      );
+      console.log('Searching for:', searchQuery);
       
-      if (!response.ok) throw new Error('Search failed');
-      
-      const data = await response.json();
-      console.log('API Response:', data);
-      
-      // Use the actual API data instead of mock data
-      const videoResult: VideoData = {
-        id: data.videoId,
-        title: data.title,
-        thumbnail: data.thumbnail,
-        duration: data.duration,
-        channel: data.author,
-        views: data.views + ' views'
-      };
-      
-      // Create multiple variations based on the single result for better UX
-      const results: VideoData[] = [
-        videoResult,
-        // Add some related suggestions (these are real video IDs for popular songs)
-        {
-          id: 'dQw4w9WgXcQ',
-          title: 'Rick Astley - Never Gonna Give You Up',
-          thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hq720.jpg',
-          duration: '3:33',
-          channel: 'RickAstleyVEVO',
-          views: '1.4B views'
-        },
-        {
-          id: 'kJQP7kiw5Fk',
-          title: 'Luis Fonsi - Despacito ft. Daddy Yankee',
-          thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hq720.jpg',
-          duration: '4:42',
-          channel: 'LuisFonsiVEVO',
-          views: '8.3B views'
-        }
+      // Try multiple search variations to get more results
+      const searchVariations = [
+        searchQuery,
+        `${searchQuery} official`,
+        `${searchQuery} music video`,
+        `${searchQuery} audio`,
+        `${searchQuery} song`
       ];
-      
-      setSearchResults(results);
+
+      const results: VideoData[] = [];
+
+      // Try to get results for each variation
+      for (let i = 0; i < Math.min(3, searchVariations.length); i++) {
+        try {
+          const response = await fetch(
+            `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(searchVariations[i])}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`API Response for "${searchVariations[i]}":`, data);
+            
+            if (data.videoId && data.title) {
+              results.push({
+                id: data.videoId,
+                title: data.title,
+                thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
+                duration: data.duration || '0:00',
+                channel: data.author || 'Unknown',
+                views: (data.views ? data.views + ' views' : 'Unknown views')
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching for "${searchVariations[i]}":`, error);
+        }
+      }
+
+      if (results.length === 0) {
+        toast({
+          title: "No Results Found",
+          description: `No songs found for "${searchQuery}". Try a different search term.`,
+          variant: "destructive",
+        });
+        setSearchResults([]);
+        return;
+      }
+
+      // Remove duplicates based on video ID
+      const uniqueResults = results.filter((result, index, self) => 
+        index === self.findIndex(r => r.id === result.id)
+      );
+
+      setSearchResults(uniqueResults);
       
       toast({
         title: "Search Complete",
-        description: `Found results for "${searchQuery}"`,
+        description: `Found ${uniqueResults.length} result(s) for "${searchQuery}"`,
       });
     } catch (error) {
       console.error('Search error:', error);
@@ -98,6 +111,7 @@ const Index = () => {
         description: "Failed to search for songs. Please try again.",
         variant: "destructive",
       });
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
