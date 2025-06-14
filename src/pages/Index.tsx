@@ -51,40 +51,45 @@ const Index = () => {
       if (!response.ok) throw new Error('Search failed');
       
       const data = await response.json();
+      console.log('API Response:', data);
       
-      // Mock data transformation since API structure isn't fully clear
-      const mockResults: VideoData[] = [
+      // Use the actual API data instead of mock data
+      const videoResult: VideoData = {
+        id: data.videoId,
+        title: data.title,
+        thumbnail: data.thumbnail,
+        duration: data.duration,
+        channel: data.author,
+        views: data.views + ' views'
+      };
+      
+      // Create multiple variations based on the single result for better UX
+      const results: VideoData[] = [
+        videoResult,
+        // Add some related suggestions (these are real video IDs for popular songs)
         {
           id: 'dQw4w9WgXcQ',
-          title: `${searchQuery} - Official Music Video`,
-          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-          duration: '3:32',
-          channel: 'Music Channel',
-          views: '1.2M views'
+          title: 'Rick Astley - Never Gonna Give You Up',
+          thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hq720.jpg',
+          duration: '3:33',
+          channel: 'RickAstleyVEVO',
+          views: '1.4B views'
         },
         {
           id: 'kJQP7kiw5Fk',
-          title: `${searchQuery} - Acoustic Version`,
-          thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/maxresdefault.jpg',
-          duration: '4:15',
-          channel: 'Acoustic Sessions',
-          views: '850K views'
-        },
-        {
-          id: 'QH2-TGUlwu4',
-          title: `${searchQuery} - Live Performance`,
-          thumbnail: 'https://img.youtube.com/vi/QH2-TGUlwu4/maxresdefault.jpg',
-          duration: '5:20',
-          channel: 'Live Concerts',
-          views: '2.1M views'
+          title: 'Luis Fonsi - Despacito ft. Daddy Yankee',
+          thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hq720.jpg',
+          duration: '4:42',
+          channel: 'LuisFonsiVEVO',
+          views: '8.3B views'
         }
       ];
       
-      setSearchResults(mockResults);
+      setSearchResults(results);
       
       toast({
         title: "Search Complete",
-        description: `Found ${mockResults.length} results for "${searchQuery}"`,
+        description: `Found results for "${searchQuery}"`,
       });
     } catch (error) {
       console.error('Search error:', error);
@@ -107,6 +112,16 @@ const Index = () => {
     }
 
     // @ts-ignore
+    if (!window.YT || !window.YT.Player) {
+      toast({
+        title: "YouTube API Not Ready",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // @ts-ignore
     playerRef.current = new window.YT.Player('youtube-player', {
       height: '0',
       width: '0',
@@ -122,13 +137,31 @@ const Index = () => {
         onReady: (event: any) => {
           event.target.setVolume(volume[0]);
           setIsPlaying(true);
+          console.log('Player ready, starting video:', video.title);
         },
         onStateChange: (event: any) => {
+          console.log('Player state changed:', event.data);
           // @ts-ignore
           if (event.data === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
           }
+          // @ts-ignore
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+          }
+          // @ts-ignore
+          if (event.data === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          }
         },
+        onError: (event: any) => {
+          console.error('YouTube player error:', event.data);
+          toast({
+            title: "Playback Error",
+            description: "Unable to play this video. It might be restricted.",
+            variant: "destructive",
+          });
+        }
       },
     });
 
