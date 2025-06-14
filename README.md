@@ -1,73 +1,74 @@
-# Welcome to your Lovable project
 
-## Project info
 
-**URL**: https://lovable.dev/projects/520a64c5-fc61-40a7-ac44-7a1146f1c5af
+# 🎵 Song Listening Website
 
-## How can I edit this code?
+Welcome to the **Song Listening Website** – a modern and responsive web app where users can search, stream, and enjoy their favorite songs online. Built with simplicity, speed, and style in mind.
 
-There are several ways of editing your application.
+## 🌐 Live Demo
 
-**Use Lovable**
+Check out the live version here: [Click to Visit](https://yourwebsiteurl.vercel.app)  
+*(Replace with your deployed URL)*
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/520a64c5-fc61-40a7-ac44-7a1146f1c5af) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📸 Preview
 
-**Use your preferred IDE**
+![Website Screenshot](./preview.png)  
+*(Optional: Add a screenshot of your homepage UI)*
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🚀 Features
 
-Follow these steps:
+- 🔍 Search and play songs from YouTube (or other APIs)
+- 🎧 Smooth audio player interface
+- 🎨 Clean and responsive UI
+- 🔄 Auto play & repeat options
+- 📱 Mobile-friendly design
+- 💬 Error handling & loading state
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🛠️ Tech Stack
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **HTML5**  
+- **CSS3** / Tailwind / Bootstrap (choose one)  
+- **JavaScript (Vanilla / React / Vue)**  
+- **YouTube API** or any Music API you used  
+- **Vercel / Netlify** for deployment
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 🧠 How It Works
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. User types a song name in the search bar  
+2. API fetches matching songs or videos  
+3. Songs are listed and can be played in the in-built player
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📂 Project Structure
 
-## What technologies are used for this project?
+/public └── index.html /src ├── css/ ├── js/ ├── components/ └── app.js README.md
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
 
-## How can I deploy this project?
+## 🧑‍💻 Author
 
-Simply open [Lovable](https://lovable.dev/projects/520a64c5-fc61-40a7-ac44-7a1146f1c5af) and click on Share -> Publish.
+**Lord Denish**  
+📧 ddenesh072@gmail.com  
+🌍 [Facebook Profile](https://www.facebook.com/share/1BXQiRBRBr/)
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 📝 License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project is open-source and free to use. Feel free to fork or contribute!
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+## 🙏 Credits
+
+- YouTube Data API (or other sources)
+- Inspiration from Spotify, YouTube Music UI
+
