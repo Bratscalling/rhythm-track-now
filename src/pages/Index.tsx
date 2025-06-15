@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus } from 'lucide-react';
+import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -49,6 +49,7 @@ interface VideoData {
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
+  const [randomSongs, setRandomSongs] = useState<VideoData[]>([]);
   const [currentVideo, setCurrentVideo] = useState<VideoData | null>(
     window.globalPlayerState?.currentVideo || null
   );
@@ -56,6 +57,7 @@ const Index = () => {
     window.globalPlayerState?.isPlaying || false
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRandom, setIsLoadingRandom] = useState(false);
   const [volume, setVolume] = useState([window.globalPlayerState?.volume || 80]);
   const [playlist, setPlaylist] = useState<VideoData[]>(
     window.globalPlayerState?.playlist || []
@@ -100,6 +102,9 @@ const Index = () => {
     if (BackgroundMode) {
       BackgroundMode.enable();
     }
+
+    // Load random songs on startup
+    discoverRandomSongs();
 
     return () => {
       // Don't destroy the player on component unmount to keep background playback
@@ -384,6 +389,118 @@ const Index = () => {
     }
   };
 
+  const discoverRandomSongs = async () => {
+    setIsLoadingRandom(true);
+    try {
+      // List of trending/popular song keywords to get variety
+      const trendingKeywords = [
+        'trending music 2024',
+        'viral songs',
+        'top hits',
+        'popular music',
+        'chart toppers',
+        'new music',
+        'best songs',
+        'hit songs',
+        'music hits',
+        'latest songs',
+        'top 40',
+        'Billboard hits',
+        'Grammy winners',
+        'viral tiktok songs',
+        'dance music',
+        'pop hits',
+        'rock classics',
+        'indie music',
+        'hip hop hits',
+        'country hits'
+      ];
+
+      const results: VideoData[] = [];
+      const maxResults = 30;
+
+      // Randomly select 6-8 keywords for variety
+      const selectedKeywords = trendingKeywords
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 8);
+
+      const searchPromises = selectedKeywords.map(async (keyword) => {
+        try {
+          const response = await fetch(
+            `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(keyword)}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.videoId && data.title) {
+              return {
+                id: data.videoId,
+                title: data.title,
+                thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
+                duration: data.duration || '0:00',
+                channel: data.author || 'Unknown',
+                views: (data.views ? data.views + ' views' : 'Unknown views')
+              };
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching random songs for "${keyword}":`, error);
+        }
+        return null;
+      });
+
+      const randomResults = await Promise.all(searchPromises);
+      
+      // Filter out null results and duplicates
+      const uniqueResults = new Map();
+      randomResults.forEach(result => {
+        if (result && !uniqueResults.has(result.id)) {
+          uniqueResults.set(result.id, result);
+        }
+      });
+
+      const finalResults = Array.from(uniqueResults.values())
+        .sort(() => Math.random() - 0.5) // Shuffle the results
+        .slice(0, maxResults);
+
+      setRandomSongs(finalResults);
+      
+      if (finalResults.length > 0) {
+        toast({
+          title: "Discover Mode",
+          description: `Found ${finalResults.length} random songs for you to explore!`,
+        });
+      }
+    } catch (error) {
+      console.error('Random songs fetch error:', error);
+      toast({
+        title: "Discovery Error",
+        description: "Failed to load random songs. Try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingRandom(false);
+    }
+  };
+
+  const playAllRandom = () => {
+    if (randomSongs.length === 0) return;
+    
+    // Shuffle the random songs
+    const shuffledSongs = [...randomSongs].sort(() => Math.random() - 0.5);
+    setPlaylist(shuffledSongs);
+    if (window.globalPlayerState) {
+      window.globalPlayerState.playlist = shuffledSongs;
+    }
+    
+    playVideo(shuffledSongs[0], 0);
+    
+    toast({
+      title: "Random Playlist",
+      description: `Playing ${shuffledSongs.length} random songs!`,
+    });
+  };
+
   async function searchSongs() {
     if (!searchQuery.trim()) return;
 
@@ -509,6 +626,18 @@ const Index = () => {
               {isLoading ? 'Searching...' : 'Search'}
             </Button>
           </div>
+          
+          {/* Discover Button */}
+          <div className="text-center mt-4">
+            <Button
+              onClick={discoverRandomSongs}
+              disabled={isLoadingRandom}
+              className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
+            </Button>
+          </div>
         </div>
 
         {/* Current Playing Section */}
@@ -589,6 +718,63 @@ const Index = () => {
               {searchResults.map((video, index) => (
                 <Card 
                   key={video.id}
+                  className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+                >
+                  <CardContent className="p-4">
+                    <div className="relative mb-4">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
+                        <Button
+                          onClick={() => playVideo(video, index)}
+                          size="sm"
+                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={() => addToPlaylist(video)}
+                          size="sm"
+                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        {video.duration}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
+                    <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
+                    <p className="text-gray-400 text-xs">{video.views}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Random Songs Section */}
+        {randomSongs.length > 0 && (
+          <div className="max-w-6xl mx-auto mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">🎲 Discover Music ({randomSongs.length} songs)</h2>
+              <Button
+                onClick={playAllRandom}
+                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+              >
+                <Shuffle className="w-4 h-4 mr-2" />
+                Shuffle & Play All
+              </Button>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {randomSongs.map((video, index) => (
+                <Card 
+                  key={`random-${video.id}`}
                   className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
                 >
                   <CardContent className="p-4">
