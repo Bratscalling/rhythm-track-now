@@ -136,6 +136,41 @@ const Index = () => {
     }
   };
 
+  const updateMediaSession = (video: VideoData, playing: boolean) => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: video.title,
+        artist: video.channel,
+        album: "RhythmTrack",
+        artwork: [
+          { src: video.thumbnail, sizes: "512x512", type: "image/jpeg" }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (playerRef.current) {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+          if (window.globalPlayerState) {
+            window.globalPlayerState.isPlaying = true;
+          }
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+          if (window.globalPlayerState) {
+            window.globalPlayerState.isPlaying = false;
+          }
+        }
+      });
+
+      navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+    }
+  };
+
   const playVideo = (video: VideoData) => {
     setCurrentVideo(video);
     
@@ -171,6 +206,7 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
       }
+      updateMediaSession(video, true);
     }, 500);
 
     toast({
@@ -194,11 +230,17 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = false;
       }
+      if (currentVideo) {
+        updateMediaSession(currentVideo, false);
+      }
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
+      }
+      if (currentVideo) {
+        updateMediaSession(currentVideo, true);
       }
     }
   };
