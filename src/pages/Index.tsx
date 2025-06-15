@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle, ListMusic } from 'lucide-react';
+import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle, ListMusic, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -10,7 +10,12 @@ import { PlaylistDialog } from '@/components/PlaylistDialog';
 import { PlaylistManager } from '@/components/PlaylistManager';
 import { LoginForm } from '@/components/LoginForm';
 import { UserProfile } from '@/components/UserProfile';
+import { EnhancedSearch } from '@/components/EnhancedSearch';
+import { EnhancedPlayerControls } from '@/components/EnhancedPlayerControls';
+import { StatsAndHistory } from '@/components/StatsAndHistory';
 import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { VideoData } from '@/types/playlist';
 
 // Import BackgroundMode with error handling for web environment
@@ -46,6 +51,8 @@ declare global {
 
 const Index = () => {
   const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites(user?.id);
+  const { addToHistory: addToListeningHistory } = useListeningHistory(user?.id);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
@@ -258,7 +265,9 @@ const Index = () => {
       }
     }
     
-    // Update global state
+    // Add to listening history
+    addToListeningHistory(video);
+    
     if (window.globalPlayerState) {
       window.globalPlayerState.currentVideo = video;
     }
@@ -388,6 +397,13 @@ const Index = () => {
     }
     if (playerRef.current) {
       playerRef.current.setVolume(newVolume[0]);
+    }
+  };
+
+  const handlePlaylistUpdate = (newPlaylist: VideoData[]) => {
+    setPlaylist(newPlaylist);
+    if (window.globalPlayerState) {
+      window.globalPlayerState.playlist = newPlaylist;
     }
   };
 
@@ -643,56 +659,46 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Main Content with Tabs */}
+        {/* Main Content with Enhanced Tabs */}
         <Tabs defaultValue="search" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/10 border-white/20">
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/10 border-white/20">
             <TabsTrigger value="search" className="data-[state=active]:bg-white/20">
               <Search className="w-4 h-4 mr-2" />
-              Search & Discover
+              Discover
             </TabsTrigger>
             <TabsTrigger value="playlists" className="data-[state=active]:bg-white/20">
               <ListMusic className="w-4 h-4 mr-2" />
-              My Playlists
+              Playlists
             </TabsTrigger>
             <TabsTrigger value="playing" className="data-[state=active]:bg-white/20">
               <Play className="w-4 h-4 mr-2" />
               Now Playing
             </TabsTrigger>
+            <TabsTrigger value="stats" className="data-[state=active]:bg-white/20">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Stats & History
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="search" className="space-y-8">
-            {/* Search Section */}
-            <div className="max-w-2xl mx-auto">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  type="text"
-                  placeholder="Search for songs, artists, or albums..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchSongs()}
-                  className="pl-12 pr-24 py-4 text-lg bg-white/10 border-white/20 text-white placeholder-gray-400 rounded-full backdrop-blur-sm focus:bg-white/20 transition-all duration-300"
-                />
-                <Button
-                  onClick={searchSongs}
-                  disabled={isLoadingSearch}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 px-6"
-                >
-                  {isLoadingSearch ? 'Searching...' : 'Search'}
-                </Button>
-              </div>
-              
-              {/* Discover Button */}
-              <div className="text-center mt-4">
-                <Button
-                  onClick={discoverRandomSongs}
-                  disabled={isLoadingRandom}
-                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
-                >
-                  <Shuffle className="w-4 h-4 mr-2" />
-                  {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
-                </Button>
-              </div>
+            {/* Enhanced Search Section */}
+            <EnhancedSearch
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSearch={searchSongs}
+              isLoading={isLoadingSearch}
+            />
+
+            {/* Discover Button */}
+            <div className="text-center">
+              <Button
+                onClick={discoverRandomSongs}
+                disabled={isLoadingRandom}
+                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
+              >
+                <Shuffle className="w-4 h-4 mr-2" />
+                {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
+              </Button>
             </div>
 
             {/* Search Results */}
@@ -729,6 +735,17 @@ const Index = () => {
                               className="rounded-full bg-white/20 hover:bg-white/30 p-2"
                             >
                               <Play className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => toggleFavorite(video)}
+                              size="sm"
+                              className={`rounded-full p-2 ${
+                                isFavorite(video.id)
+                                  ? 'bg-red-500 hover:bg-red-600'
+                                  : 'bg-white/20 hover:bg-white/30'
+                              }`}
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
                             </Button>
                             <PlaylistDialog song={video}>
                               <Button
@@ -788,6 +805,17 @@ const Index = () => {
                             >
                               <Play className="w-4 h-4" />
                             </Button>
+                            <Button
+                              onClick={() => toggleFavorite(video)}
+                              size="sm"
+                              className={`rounded-full p-2 ${
+                                isFavorite(video.id)
+                                  ? 'bg-red-500 hover:bg-red-600'
+                                  : 'bg-white/20 hover:bg-white/30'
+                              }`}
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
+                            </Button>
                             <PlaylistDialog song={video}>
                               <Button
                                 size="sm"
@@ -826,11 +854,11 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="playing" className="space-y-8">
-            {/* Current Playing Section */}
+            {/* Enhanced Current Playing Section */}
             {currentVideo && (
               <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
                 <CardContent className="p-6">
-                  <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-6 mb-6">
                     <img
                       src={currentVideo.thumbnail}
                       alt={currentVideo.title}
@@ -839,49 +867,21 @@ const Index = () => {
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-white mb-2">{currentVideo.title}</h3>
                       <p className="text-gray-300 mb-4">{currentVideo.channel}</p>
-                      
-                      {/* Player Controls */}
-                      <div className="flex items-center space-x-4">
-                        <Button
-                          onClick={playPrevious}
-                          size="lg"
-                          disabled={playlist.length === 0}
-                          className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
-                        >
-                          <SkipBack className="w-5 h-5" />
-                        </Button>
-                        
-                        <Button
-                          onClick={togglePlayPause}
-                          size="lg"
-                          className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-12 h-12 p-0"
-                        >
-                          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                        </Button>
-                        
-                        <Button
-                          onClick={playNext}
-                          size="lg"
-                          disabled={playlist.length === 0}
-                          className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
-                        >
-                          <SkipForward className="w-5 h-5" />
-                        </Button>
-                        
-                        <div className="flex items-center space-x-2 flex-1 max-w-xs">
-                          <Volume2 className="w-4 h-4 text-gray-300" />
-                          <Slider
-                            value={volume}
-                            onValueChange={handleVolumeChange}
-                            max={100}
-                            step={1}
-                            className="flex-1"
-                          />
-                          <span className="text-sm text-gray-300 w-8">{volume[0]}</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
+                  
+                  {/* Enhanced Player Controls */}
+                  <EnhancedPlayerControls
+                    currentVideo={currentVideo}
+                    isPlaying={isPlaying}
+                    volume={volume}
+                    playlist={playlist}
+                    onTogglePlayPause={togglePlayPause}
+                    onPlayNext={playNext}
+                    onPlayPrevious={playPrevious}
+                    onVolumeChange={handleVolumeChange}
+                    onPlaylistUpdate={handlePlaylistUpdate}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -934,6 +934,10 @@ const Index = () => {
                 <p className="text-gray-400">Start playing some music to see it here</p>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="stats">
+            <StatsAndHistory onPlaySong={(song) => playVideo(song)} />
           </TabsContent>
         </Tabs>
 
