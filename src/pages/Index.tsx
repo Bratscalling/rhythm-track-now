@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { Search, Play, Pause, Volume2, SkipForward, SkipBack } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { BackgroundMode } from '@capacitor/background-mode';
+
+// Import BackgroundMode with error handling for web environment
+let BackgroundMode: any = null;
+try {
+  BackgroundMode = require('@capacitor/background-mode').BackgroundMode;
+} catch (error) {
+  console.log('Background mode not available in web environment');
+}
 
 // YouTube API type declarations
 declare global {
@@ -89,19 +97,21 @@ const Index = () => {
 
   const initializeBackgroundMode = async () => {
     try {
-      // Request background mode permissions
-      await BackgroundMode.enable();
-      
-      // Configure background mode settings
-      await BackgroundMode.setNotification({
-        title: 'RhythmTrack',
-        text: 'Music is playing in background',
-        silent: false,
-        resume: true,
-        hidden: false
-      });
+      if (BackgroundMode) {
+        // Request background mode permissions
+        await BackgroundMode.enable();
+        
+        // Configure background mode settings
+        await BackgroundMode.setNotification({
+          title: 'RhythmTrack',
+          text: 'Music is playing in background',
+          silent: false,
+          resume: true,
+          hidden: false
+        });
 
-      console.log('Background mode initialized');
+        console.log('Background mode initialized');
+      }
     } catch (error) {
       console.log('Background mode not available (web environment):', error);
     }
@@ -272,8 +282,10 @@ const Index = () => {
 
   const enableBackgroundPlayback = async () => {
     try {
-      await BackgroundMode.enable();
-      console.log('Background playback enabled');
+      if (BackgroundMode) {
+        await BackgroundMode.enable();
+        console.log('Background playback enabled');
+      }
     } catch (error) {
       console.log('Background mode not available:', error);
     }
