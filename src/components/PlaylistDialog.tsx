@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Plus, Music, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
 import { VideoData } from '@/types/playlist';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PlaylistDialogProps {
   song?: VideoData;
@@ -27,7 +29,8 @@ export const PlaylistDialog = ({ song, children }: PlaylistDialogProps) => {
   const [newPlaylistDescription, setNewPlaylistDescription] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   
-  const { playlists, createPlaylist, addSongToPlaylist } = usePlaylist();
+  const { user } = useAuth();
+  const { playlists, createPlaylist, addSongToPlaylist } = usePlaylist(user?.id);
   const { toast } = useToast();
 
   const handleCreatePlaylist = () => {

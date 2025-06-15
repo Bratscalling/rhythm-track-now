@@ -1,14 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { Playlist, VideoData } from '@/types/playlist';
 
-export const usePlaylist = () => {
+export const usePlaylist = (userId?: string) => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(null);
 
-  // Load playlists from localStorage on mount
+  // Load user-specific playlists from localStorage on mount
   useEffect(() => {
-    const savedPlaylists = localStorage.getItem('user_playlists');
+    if (!userId) return;
+    
+    const userPlaylistKey = `user_playlists_${userId}`;
+    const savedPlaylists = localStorage.getItem(userPlaylistKey);
     if (savedPlaylists) {
       try {
         const parsed = JSON.parse(savedPlaylists);
@@ -18,15 +20,18 @@ export const usePlaylist = () => {
           updatedAt: new Date(p.updatedAt)
         })));
       } catch (error) {
-        console.error('Error loading playlists:', error);
+        console.error('Error loading user playlists:', error);
       }
     }
-  }, []);
+  }, [userId]);
 
-  // Save playlists to localStorage whenever they change
+  // Save user-specific playlists to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('user_playlists', JSON.stringify(playlists));
-  }, [playlists]);
+    if (!userId || playlists.length === 0) return;
+    
+    const userPlaylistKey = `user_playlists_${userId}`;
+    localStorage.setItem(userPlaylistKey, JSON.stringify(playlists));
+  }, [playlists, userId]);
 
   const createPlaylist = (name: string, description?: string): Playlist => {
     const newPlaylist: Playlist = {

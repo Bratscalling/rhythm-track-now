@@ -7,13 +7,15 @@ import { usePlaylist } from '@/hooks/usePlaylist';
 import { PlaylistDialog } from './PlaylistDialog';
 import { useToast } from '@/hooks/use-toast';
 import { VideoData } from '@/types/playlist';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PlaylistManagerProps {
   onPlayPlaylist?: (songs: VideoData[], startIndex?: number) => void;
 }
 
 export const PlaylistManager = ({ onPlayPlaylist }: PlaylistManagerProps) => {
-  const { playlists, deletePlaylist, removeSongFromPlaylist, setCurrentPlaylist } = usePlaylist();
+  const { user } = useAuth();
+  const { playlists, deletePlaylist, removeSongFromPlaylist, setCurrentPlaylist } = usePlaylist(user?.id);
   const { toast } = useToast();
   const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null);
 
