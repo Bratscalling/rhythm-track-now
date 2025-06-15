@@ -18,6 +18,7 @@ import { MobilePlayer } from '@/components/MobilePlayer';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
+import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
 import { VideoData } from '@/types/playlist';
 
 // Import BackgroundMode with error handling for web environment
@@ -77,6 +78,9 @@ const Index = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const playerRef = useRef<any>(null);
   const { toast } = useToast();
+  const { showMediaNotification, setupMediaSession, requestNotificationPermission } = useBackgroundPlayback();
+  const [showBackgroundPlayer, setShowBackgroundPlayer] = useState(false);
+  const [backgroundPlayerMinimized, setBackgroundPlayerMinimized] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -302,7 +306,14 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
       }
-      updateMediaSession(video);
+      
+      // Setup background playback
+      setupMediaSession(video);
+      showMediaNotification(video, true);
+      setShowBackgroundPlayer(true);
+      
+      // Request notification permission on first play
+      requestNotificationPermission();
     }, 500);
 
     toast({
@@ -381,6 +392,9 @@ const Index = () => {
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'paused';
       }
+      if (currentVideo) {
+        showMediaNotification(currentVideo, false);
+      }
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
@@ -389,6 +403,9 @@ const Index = () => {
       }
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'playing';
+      }
+      if (currentVideo) {
+        showMediaNotification(currentVideo, true);
       }
     }
   };
@@ -1006,6 +1023,20 @@ const Index = () => {
             onTogglePlayPause={togglePlayPause}
             onPlayNext={playNext}
             onPlayPrevious={playPrevious}
+          />
+        )}
+
+        {/* Background Music Notification */}
+        {currentVideo && showBackgroundPlayer && (
+          <BackgroundMusicNotification
+            currentVideo={currentVideo}
+            isPlaying={isPlaying}
+            isMinimized={backgroundPlayerMinimized}
+            onTogglePlayPause={togglePlayPause}
+            onPlayNext={playNext}
+            onPlayPrevious={playPrevious}
+            onClose={() => setShowBackgroundPlayer(false)}
+            onToggleMinimize={() => setBackgroundPlayerMinimized(!backgroundPlayerMinimized)}
           />
         )}
 
