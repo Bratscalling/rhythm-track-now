@@ -1,10 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle } from 'lucide-react';
+import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { PlaylistDialog } from '@/components/PlaylistDialog';
+import { PlaylistManager } from '@/components/PlaylistManager';
+import { VideoData } from '@/types/playlist';
 
 // Import BackgroundMode with error handling for web environment
 let BackgroundMode: any = null;
@@ -35,15 +39,6 @@ declare global {
       currentIndex: number;
     };
   }
-}
-
-interface VideoData {
-  id: string;
-  title: string;
-  thumbnail: string;
-  duration: string;
-  channel: string;
-  views: string;
 }
 
 const Index = () => {
@@ -501,6 +496,17 @@ const Index = () => {
     });
   };
 
+  const handlePlayAllFromPlaylist = (songs: VideoData[], startIndex = 0) => {
+    if (songs.length === 0) return;
+    
+    setPlaylist(songs);
+    if (window.globalPlayerState) {
+      window.globalPlayerState.playlist = songs;
+    }
+    
+    playVideo(songs[startIndex], startIndex);
+  };
+
   async function searchSongs() {
     if (!searchQuery.trim()) return;
 
@@ -606,263 +612,299 @@ const Index = () => {
           <p className="text-xl text-gray-300">Your Personal Music Streaming Experience</p>
         </div>
 
-        {/* Search Section */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Search for songs, artists, or albums..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchSongs()}
-              className="pl-12 pr-24 py-4 text-lg bg-white/10 border-white/20 text-white placeholder-gray-400 rounded-full backdrop-blur-sm focus:bg-white/20 transition-all duration-300"
-            />
-            <Button
-              onClick={searchSongs}
-              disabled={isLoading}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 px-6"
-            >
-              {isLoading ? 'Searching...' : 'Search'}
-            </Button>
-          </div>
-          
-          {/* Discover Button */}
-          <div className="text-center mt-4">
-            <Button
-              onClick={discoverRandomSongs}
-              disabled={isLoadingRandom}
-              className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
-            >
-              <Shuffle className="w-4 h-4 mr-2" />
-              {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
-            </Button>
-          </div>
-        </div>
+        {/* Main Content with Tabs */}
+        <Tabs defaultValue="search" className="max-w-6xl mx-auto">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/10 border-white/20">
+            <TabsTrigger value="search" className="data-[state=active]:bg-white/20">
+              <Search className="w-4 h-4 mr-2" />
+              Search & Discover
+            </TabsTrigger>
+            <TabsTrigger value="playlists" className="data-[state=active]:bg-white/20">
+              <ListMusic className="w-4 h-4 mr-2" />
+              My Playlists
+            </TabsTrigger>
+            <TabsTrigger value="playing" className="data-[state=active]:bg-white/20">
+              <Play className="w-4 h-4 mr-2" />
+              Now Playing
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Current Playing Section */}
-        {currentVideo && (
-          <Card className="max-w-4xl mx-auto mb-8 bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-6">
-                <img
-                  src={currentVideo.thumbnail}
-                  alt={currentVideo.title}
-                  className="w-32 h-24 object-cover rounded-lg shadow-lg"
+          <TabsContent value="search" className="space-y-8">
+            {/* Search Section */}
+            <div className="max-w-2xl mx-auto">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder="Search for songs, artists, or albums..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchSongs()}
+                  className="pl-12 pr-24 py-4 text-lg bg-white/10 border-white/20 text-white placeholder-gray-400 rounded-full backdrop-blur-sm focus:bg-white/20 transition-all duration-300"
                 />
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-white mb-2">{currentVideo.title}</h3>
-                  <p className="text-gray-300 mb-4">{currentVideo.channel}</p>
-                  
-                  {/* Player Controls */}
-                  <div className="flex items-center space-x-4">
-                    <Button
-                      onClick={playPrevious}
-                      size="lg"
-                      disabled={playlist.length === 0}
-                      className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+                <Button
+                  onClick={searchSongs}
+                  disabled={isLoading}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 px-6"
+                >
+                  {isLoading ? 'Searching...' : 'Search'}
+                </Button>
+              </div>
+              
+              {/* Discover Button */}
+              <div className="text-center mt-4">
+                <Button
+                  onClick={discoverRandomSongs}
+                  disabled={isLoadingRandom}
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Search Results ({searchResults.length} songs)</h2>
+                  <Button
+                    onClick={playAllFromSearch}
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Play All
+                  </Button>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {searchResults.map((video, index) => (
+                    <Card 
+                      key={video.id}
+                      className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
                     >
-                      <SkipBack className="w-5 h-5" />
-                    </Button>
-                    
-                    <Button
-                      onClick={togglePlayPause}
-                      size="lg"
-                      className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-12 h-12 p-0"
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                    </Button>
-                    
-                    <Button
-                      onClick={playNext}
-                      size="lg"
-                      disabled={playlist.length === 0}
-                      className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
-                    >
-                      <SkipForward className="w-5 h-5" />
-                    </Button>
-                    
-                    <div className="flex items-center space-x-2 flex-1 max-w-xs">
-                      <Volume2 className="w-4 h-4 text-gray-300" />
-                      <Slider
-                        value={volume}
-                        onValueChange={handleVolumeChange}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-gray-300 w-8">{volume[0]}</span>
-                    </div>
-                  </div>
+                      <CardContent className="p-4">
+                        <div className="relative mb-4">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
+                            <Button
+                              onClick={() => playVideo(video, index)}
+                              size="sm"
+                              className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                            >
+                              <Play className="w-4 h-4" />
+                            </Button>
+                            <PlaylistDialog song={video}>
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </PlaylistDialog>
+                          </div>
+                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {video.duration}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
+                        <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
+                        <p className="text-gray-400 text-xs">{video.views}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Search Results ({searchResults.length} songs)</h2>
-              <Button
-                onClick={playAllFromSearch}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Play All
-              </Button>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {searchResults.map((video, index) => (
-                <Card 
-                  key={video.id}
-                  className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
-                >
-                  <CardContent className="p-4">
-                    <div className="relative mb-4">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
+            {/* Random Songs Section */}
+            {randomSongs.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">🎲 Discover Music ({randomSongs.length} songs)</h2>
+                  <Button
+                    onClick={playAllRandom}
+                    className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                  >
+                    <Shuffle className="w-4 h-4 mr-2" />
+                    Shuffle & Play All
+                  </Button>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {randomSongs.map((video, index) => (
+                    <Card 
+                      key={`random-${video.id}`}
+                      className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <CardContent className="p-4">
+                        <div className="relative mb-4">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
+                            <Button
+                              onClick={() => playVideo(video, index)}
+                              size="sm"
+                              className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                            >
+                              <Play className="w-4 h-4" />
+                            </Button>
+                            <PlaylistDialog song={video}>
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </PlaylistDialog>
+                          </div>
+                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {video.duration}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
+                        <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
+                        <p className="text-gray-400 text-xs">{video.views}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {searchResults.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎼</div>
+                <h3 className="text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
+                <p className="text-gray-400">Search for your favorite songs and discover new music</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="playlists">
+            <PlaylistManager onPlayPlaylist={handlePlayAllFromPlaylist} />
+          </TabsContent>
+
+          <TabsContent value="playing" className="space-y-8">
+            {/* Current Playing Section */}
+            {currentVideo && (
+              <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-6">
+                    <img
+                      src={currentVideo.thumbnail}
+                      alt={currentVideo.title}
+                      className="w-32 h-24 object-cover rounded-lg shadow-lg"
+                    />
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-white mb-2">{currentVideo.title}</h3>
+                      <p className="text-gray-300 mb-4">{currentVideo.channel}</p>
+                      
+                      {/* Player Controls */}
+                      <div className="flex items-center space-x-4">
                         <Button
-                          onClick={() => playVideo(video, index)}
-                          size="sm"
-                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                          onClick={playPrevious}
+                          size="lg"
+                          disabled={playlist.length === 0}
+                          className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
                         >
-                          <Play className="w-4 h-4" />
+                          <SkipBack className="w-5 h-5" />
                         </Button>
+                        
                         <Button
-                          onClick={() => addToPlaylist(video)}
-                          size="sm"
-                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                          onClick={togglePlayPause}
+                          size="lg"
+                          className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-12 h-12 p-0"
                         >
-                          <Plus className="w-4 h-4" />
+                          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                         </Button>
+                        
+                        <Button
+                          onClick={playNext}
+                          size="lg"
+                          disabled={playlist.length === 0}
+                          className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+                        >
+                          <SkipForward className="w-5 h-5" />
+                        </Button>
+                        
+                        <div className="flex items-center space-x-2 flex-1 max-w-xs">
+                          <Volume2 className="w-4 h-4 text-gray-300" />
+                          <Slider
+                            value={volume}
+                            onValueChange={handleVolumeChange}
+                            max={100}
+                            step={1}
+                            className="flex-1"
+                          />
+                          <span className="text-sm text-gray-300 w-8">{volume[0]}</span>
+                        </div>
                       </div>
-                      <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                        {video.duration}
-                      </span>
                     </div>
-                    <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
-                    <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
-                    <p className="text-gray-400 text-xs">{video.views}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Random Songs Section */}
-        {randomSongs.length > 0 && (
-          <div className="max-w-6xl mx-auto mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">🎲 Discover Music ({randomSongs.length} songs)</h2>
-              <Button
-                onClick={playAllRandom}
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-              >
-                <Shuffle className="w-4 h-4 mr-2" />
-                Shuffle & Play All
-              </Button>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {randomSongs.map((video, index) => (
-                <Card 
-                  key={`random-${video.id}`}
-                  className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
-                >
-                  <CardContent className="p-4">
-                    <div className="relative mb-4">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
-                        <Button
-                          onClick={() => playVideo(video, index)}
-                          size="sm"
-                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => addToPlaylist(video)}
-                          size="sm"
-                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                        {video.duration}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
-                    <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
-                    <p className="text-gray-400 text-xs">{video.views}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+            {/* Current Playlist */}
+            {playlist.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold mb-6">Current Playlist ({playlist.length} songs)</h2>
+                <div className="space-y-2">
+                  {playlist.slice(0, 10).map((video, index) => (
+                    <Card 
+                      key={`playlist-${index}`}
+                      className={`cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 ${
+                        index === currentIndex ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/50' : ''
+                      }`}
+                      onClick={() => playVideo(video, index)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-16 h-12 object-cover rounded"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-white text-sm line-clamp-1">{video.title}</h4>
+                            <p className="text-gray-300 text-xs">{video.channel}</p>
+                          </div>
+                          <span className="text-gray-400 text-xs">{video.duration}</span>
+                          {index === currentIndex && isPlaying && (
+                            <div className="w-4 h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full animate-pulse" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {playlist.length > 10 && (
+                    <p className="text-center text-gray-400 text-sm mt-4">
+                      ...and {playlist.length - 10} more songs
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Current Playlist */}
-        {playlist.length > 0 && (
-          <div className="max-w-4xl mx-auto mt-12">
-            <h2 className="text-2xl font-bold mb-6">Current Playlist ({playlist.length} songs)</h2>
-            <div className="space-y-2">
-              {playlist.slice(0, 10).map((video, index) => (
-                <Card 
-                  key={`playlist-${index}`}
-                  className={`cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 ${
-                    index === currentIndex ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/50' : ''
-                  }`}
-                  onClick={() => playVideo(video, index)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center space-x-4">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-16 h-12 object-cover rounded"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium text-white text-sm line-clamp-1">{video.title}</h4>
-                        <p className="text-gray-300 text-xs">{video.channel}</p>
-                      </div>
-                      <span className="text-gray-400 text-xs">{video.duration}</span>
-                      {index === currentIndex && isPlaying && (
-                        <div className="w-4 h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full animate-pulse" />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {playlist.length > 10 && (
-                <p className="text-center text-gray-400 text-sm mt-4">
-                  ...and {playlist.length - 10} more songs
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {searchResults.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎼</div>
-            <h3 className="text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
-            <p className="text-gray-400">Search for your favorite songs and discover new music</p>
-          </div>
-        )}
+            {!currentVideo && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎵</div>
+                <h3 className="text-2xl font-semibold mb-2">No Music Playing</h3>
+                <p className="text-gray-400">Start playing some music to see it here</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Local YouTube Player (fallback) */}
         <div id="youtube-player" className="hidden"></div>
