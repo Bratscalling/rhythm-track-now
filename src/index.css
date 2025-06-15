@@ -101,6 +101,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Mobile optimization */
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      overscroll-behavior: none;
+    }
+  }
 }
 
 @layer utilities {
@@ -109,6 +121,23 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Mobile touch optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Prevent zoom on double tap for mobile */
+  .no-zoom {
+    touch-action: pan-x pan-y;
+  }
+
+  /* Mobile-specific spacing */
+  @media (max-width: 768px) {
+    .mobile-safe-area {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }
 
@@ -148,4 +177,41 @@
 
 .playing-glow {
   animation: glow 2s ease-in-out infinite alternate;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Optimize button sizes for touch */
+  .btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on mobile */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Mobile grid optimizations */
+  .mobile-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 768px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* PWA-specific styles */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

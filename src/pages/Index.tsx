@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle, ListMusic, BarChart3 } from 'lucide-react';
+import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus, Shuffle, ListMusic, BarChart3, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { PlaylistDialog } from '@/components/PlaylistDialog';
 import { PlaylistManager } from '@/components/PlaylistManager';
@@ -13,6 +14,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { EnhancedSearch } from '@/components/EnhancedSearch';
 import { EnhancedPlayerControls } from '@/components/EnhancedPlayerControls';
 import { StatsAndHistory } from '@/components/StatsAndHistory';
+import { MobilePlayer } from '@/components/MobilePlayer';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
@@ -72,6 +74,7 @@ const Index = () => {
   const [currentIndex, setCurrentIndex] = useState(
     window.globalPlayerState?.currentIndex || 0
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const playerRef = useRef<any>(null);
   const { toast } = useToast();
 
@@ -645,301 +648,366 @@ const Index = () => {
         }}
       />
       
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header with User Profile */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="text-center flex-1">
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent mb-4">
-              🎵 RhythmTrack
-            </h1>
-            <p className="text-xl text-gray-300">Your Personal Music Streaming Experience</p>
-          </div>
-          <div className="absolute top-0 right-0">
-            <UserProfile user={user!} onLogout={logout} />
+      <div className="relative z-10">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-white">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-gray-900 border-gray-700 text-white w-80">
+              <div className="py-4">
+                <h2 className="text-xl font-bold mb-4 text-center bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent">
+                  🎵 RhythmTrack
+                </h2>
+                <UserProfile user={user!} onLogout={logout} />
+              </div>
+            </SheetContent>
+          </Sheet>
+          
+          <h1 className="text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent">
+            🎵 RhythmTrack
+          </h1>
+          
+          <div className="w-8"></div> {/* Spacer for centering */}
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:block container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent mb-4">
+                🎵 RhythmTrack
+              </h1>
+              <p className="text-lg lg:text-xl text-gray-300">Your Personal Music Streaming Experience</p>
+            </div>
+            <div className="absolute top-0 right-0">
+              <UserProfile user={user!} onLogout={logout} />
+            </div>
           </div>
         </div>
 
-        {/* Main Content with Enhanced Tabs */}
-        <Tabs defaultValue="search" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/10 border-white/20">
-            <TabsTrigger value="search" className="data-[state=active]:bg-white/20">
-              <Search className="w-4 h-4 mr-2" />
-              Discover
-            </TabsTrigger>
-            <TabsTrigger value="playlists" className="data-[state=active]:bg-white/20">
-              <ListMusic className="w-4 h-4 mr-2" />
-              Playlists
-            </TabsTrigger>
-            <TabsTrigger value="playing" className="data-[state=active]:bg-white/20">
-              <Play className="w-4 h-4 mr-2" />
-              Now Playing
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="data-[state=active]:bg-white/20">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Stats & History
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="search" className="space-y-8">
-            {/* Enhanced Search Section */}
-            <EnhancedSearch
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onSearch={searchSongs}
-              isLoading={isLoadingSearch}
-            />
-
-            {/* Discover Button */}
-            <div className="text-center">
-              <Button
-                onClick={discoverRandomSongs}
-                disabled={isLoadingRandom}
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-8"
-              >
-                <Shuffle className="w-4 h-4 mr-2" />
-                {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
-              </Button>
+        {/* Main Content */}
+        <div className="container mx-auto px-2 md:px-4 pb-24 md:pb-8">
+          <Tabs defaultValue="search" className="max-w-6xl mx-auto">
+            {/* Mobile Tab Navigation */}
+            <div className="md:hidden mb-4">
+              <TabsList className="grid w-full grid-cols-4 bg-white/10 border-white/20 h-12">
+                <TabsTrigger value="search" className="data-[state=active]:bg-white/20 text-xs">
+                  <Search className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="playlists" className="data-[state=active]:bg-white/20 text-xs">
+                  <ListMusic className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="playing" className="data-[state=active]:bg-white/20 text-xs">
+                  <Play className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="stats" className="data-[state=active]:bg-white/20 text-xs">
+                  <BarChart3 className="w-3 h-3" />
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            {/* Search Results */}
-            {searchResults.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Search Results ({searchResults.length} songs)</h2>
-                  <Button
-                    onClick={playAllFromSearch}
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Play All
-                  </Button>
-                </div>
-                
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {searchResults.map((video, index) => (
-                    <Card 
-                      key={video.id}
-                      className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+            {/* Desktop Tab Navigation */}
+            <div className="hidden md:block">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/10 border-white/20">
+                <TabsTrigger value="search" className="data-[state=active]:bg-white/20">
+                  <Search className="w-4 h-4 mr-2" />
+                  Discover
+                </TabsTrigger>
+                <TabsTrigger value="playlists" className="data-[state=active]:bg-white/20">
+                  <ListMusic className="w-4 h-4 mr-2" />
+                  Playlists
+                </TabsTrigger>
+                <TabsTrigger value="playing" className="data-[state=active]:bg-white/20">
+                  <Play className="w-4 h-4 mr-2" />
+                  Now Playing
+                </TabsTrigger>
+                <TabsTrigger value="stats" className="data-[state=active]:bg-white/20">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Stats & History
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="search" className="space-y-4 md:space-y-8">
+              {/* Enhanced Search Section */}
+              <EnhancedSearch
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onSearch={searchSongs}
+                isLoading={isLoadingSearch}
+              />
+
+              {/* Discover Button */}
+              <div className="text-center">
+                <Button
+                  onClick={discoverRandomSongs}
+                  disabled={isLoadingRandom}
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-full px-6 md:px-8"
+                  size={window.innerWidth < 768 ? 'sm' : 'default'}
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  {isLoadingRandom ? 'Discovering...' : 'Discover Random Songs'}
+                </Button>
+              </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <h2 className="text-lg md:text-2xl font-bold">Search Results ({searchResults.length} songs)</h2>
+                    <Button
+                      onClick={playAllFromSearch}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      size={window.innerWidth < 768 ? 'sm' : 'default'}
                     >
-                      <CardContent className="p-4">
-                        <div className="relative mb-4">
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
-                            <Button
-                              onClick={() => playVideo(video, index)}
-                              size="sm"
-                              className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                            >
-                              <Play className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              onClick={() => toggleFavorite(video)}
-                              size="sm"
-                              className={`rounded-full p-2 ${
-                                isFavorite(video.id)
-                                  ? 'bg-red-500 hover:bg-red-600'
-                                  : 'bg-white/20 hover:bg-white/30'
-                              }`}
-                            >
-                              <Heart className={`w-4 h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
-                            </Button>
-                            <PlaylistDialog song={video}>
-                              <Button
-                                size="sm"
-                                className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </PlaylistDialog>
-                          </div>
-                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                            {video.duration}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
-                        <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
-                        <p className="text-gray-400 text-xs">{video.views}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Random Songs Section */}
-            {randomSongs.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">🎲 Discover Music ({randomSongs.length} songs)</h2>
-                  <Button
-                    onClick={playAllRandom}
-                    className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                  >
-                    <Shuffle className="w-4 h-4 mr-2" />
-                    Shuffle & Play All
-                  </Button>
-                </div>
-                
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {randomSongs.map((video, index) => (
-                    <Card 
-                      key={`random-${video.id}`}
-                      className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
-                    >
-                      <CardContent className="p-4">
-                        <div className="relative mb-4">
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
-                            <Button
-                              onClick={() => playVideo(video, index)}
-                              size="sm"
-                              className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                            >
-                              <Play className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              onClick={() => toggleFavorite(video)}
-                              size="sm"
-                              className={`rounded-full p-2 ${
-                                isFavorite(video.id)
-                                  ? 'bg-red-500 hover:bg-red-600'
-                                  : 'bg-white/20 hover:bg-white/30'
-                              }`}
-                            >
-                              <Heart className={`w-4 h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
-                            </Button>
-                            <PlaylistDialog song={video}>
-                              <Button
-                                size="sm"
-                                className="rounded-full bg-white/20 hover:bg-white/30 p-2"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </PlaylistDialog>
-                          </div>
-                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                            {video.duration}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
-                        <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
-                        <p className="text-gray-400 text-xs">{video.views}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {searchResults.length === 0 && !isLoadingSearch && (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🎼</div>
-                <h3 className="text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
-                <p className="text-gray-400">Search for your favorite songs and discover new music</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="playlists">
-            <PlaylistManager onPlayPlaylist={handlePlayAllFromPlaylist} />
-          </TabsContent>
-
-          <TabsContent value="playing" className="space-y-8">
-            {/* Enhanced Current Playing Section */}
-            {currentVideo && (
-              <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-6 mb-6">
-                    <img
-                      src={currentVideo.thumbnail}
-                      alt={currentVideo.title}
-                      className="w-32 h-24 object-cover rounded-lg shadow-lg"
-                    />
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-white mb-2">{currentVideo.title}</h3>
-                      <p className="text-gray-300 mb-4">{currentVideo.channel}</p>
-                    </div>
+                      <Play className="w-4 h-4 mr-2" />
+                      Play All
+                    </Button>
                   </div>
                   
-                  {/* Enhanced Player Controls */}
-                  <EnhancedPlayerControls
-                    currentVideo={currentVideo}
-                    isPlaying={isPlaying}
-                    volume={volume}
-                    playlist={playlist}
-                    onTogglePlayPause={togglePlayPause}
-                    onPlayNext={playNext}
-                    onPlayPrevious={playPrevious}
-                    onVolumeChange={handleVolumeChange}
-                    onPlaylistUpdate={handlePlaylistUpdate}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Current Playlist */}
-            {playlist.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold mb-6">Current Playlist ({playlist.length} songs)</h2>
-                <div className="space-y-2">
-                  {playlist.slice(0, 10).map((video, index) => (
-                    <Card 
-                      key={`playlist-${index}`}
-                      className={`cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 ${
-                        index === currentIndex ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/50' : ''
-                      }`}
-                      onClick={() => playVideo(video, index)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-16 h-12 object-cover rounded"
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-medium text-white text-sm line-clamp-1">{video.title}</h4>
-                            <p className="text-gray-300 text-xs">{video.channel}</p>
+                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {searchResults.map((video, index) => (
+                      <Card 
+                        key={video.id}
+                        className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+                      >
+                        <CardContent className="p-2 md:p-4">
+                          <div className="relative mb-2 md:mb-4">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-full h-20 md:h-32 object-cover rounded-lg"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-1 md:space-x-2">
+                              <Button
+                                onClick={() => playVideo(video, index)}
+                                size="sm"
+                                className="rounded-full bg-white/20 hover:bg-white/30 p-1 md:p-2"
+                              >
+                                <Play className="w-3 h-3 md:w-4 md:h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => toggleFavorite(video)}
+                                size="sm"
+                                className={`rounded-full p-1 md:p-2 ${
+                                  isFavorite(video.id)
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : 'bg-white/20 hover:bg-white/30'
+                                }`}
+                              >
+                                <Heart className={`w-3 h-3 md:w-4 md:h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
+                              </Button>
+                              <PlaylistDialog song={video}>
+                                <Button
+                                  size="sm"
+                                  className="rounded-full bg-white/20 hover:bg-white/30 p-1 md:p-2"
+                                >
+                                  <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                                </Button>
+                              </PlaylistDialog>
+                            </div>
+                            <span className="absolute bottom-1 right-1 md:bottom-2 md:right-2 bg-black/70 text-white text-xs px-1 md:px-2 py-1 rounded">
+                              {video.duration}
+                            </span>
                           </div>
-                          <span className="text-gray-400 text-xs">{video.duration}</span>
-                          {index === currentIndex && isPlaying && (
-                            <div className="w-4 h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full animate-pulse" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {playlist.length > 10 && (
-                    <p className="text-center text-gray-400 text-sm mt-4">
-                      ...and {playlist.length - 10} more songs
-                    </p>
-                  )}
+                          <h3 className="font-semibold text-white mb-1 md:mb-2 line-clamp-2 text-xs md:text-sm">{video.title}</h3>
+                          <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
+                          <p className="text-gray-400 text-xs hidden md:block">{video.views}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {!currentVideo && (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🎵</div>
-                <h3 className="text-2xl font-semibold mb-2">No Music Playing</h3>
-                <p className="text-gray-400">Start playing some music to see it here</p>
-              </div>
-            )}
-          </TabsContent>
+              {/* Random Songs Section */}
+              {randomSongs.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <h2 className="text-lg md:text-2xl font-bold">🎲 Discover Music ({randomSongs.length} songs)</h2>
+                    <Button
+                      onClick={playAllRandom}
+                      className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                      size={window.innerWidth < 768 ? 'sm' : 'default'}
+                    >
+                      <Shuffle className="w-4 h-4 mr-2" />
+                      <span className="hidden md:inline">Shuffle & Play All</span>
+                      <span className="md:hidden">Shuffle</span>
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {randomSongs.map((video, index) => (
+                      <Card 
+                        key={`random-${video.id}`}
+                        className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+                      >
+                        <CardContent className="p-2 md:p-4">
+                          <div className="relative mb-2 md:mb-4">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-full h-20 md:h-32 object-cover rounded-lg"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-1 md:space-x-2">
+                              <Button
+                                onClick={() => playVideo(video, index)}
+                                size="sm"
+                                className="rounded-full bg-white/20 hover:bg-white/30 p-1 md:p-2"
+                              >
+                                <Play className="w-3 h-3 md:w-4 md:h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => toggleFavorite(video)}
+                                size="sm"
+                                className={`rounded-full p-1 md:p-2 ${
+                                  isFavorite(video.id)
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : 'bg-white/20 hover:bg-white/30'
+                                }`}
+                              >
+                                <Heart className={`w-3 h-3 md:w-4 md:h-4 ${isFavorite(video.id) ? 'fill-current' : ''}`} />
+                              </Button>
+                              <PlaylistDialog song={video}>
+                                <Button
+                                  size="sm"
+                                  className="rounded-full bg-white/20 hover:bg-white/30 p-1 md:p-2"
+                                >
+                                  <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                                </Button>
+                              </PlaylistDialog>
+                            </div>
+                            <span className="absolute bottom-1 right-1 md:bottom-2 md:right-2 bg-black/70 text-white text-xs px-1 md:px-2 py-1 rounded">
+                              {video.duration}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-white mb-1 md:mb-2 line-clamp-2 text-xs md:text-sm">{video.title}</h3>
+                          <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
+                          <p className="text-gray-400 text-xs hidden md:block">{video.views}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          <TabsContent value="stats">
-            <StatsAndHistory onPlaySong={(song) => playVideo(song)} />
-          </TabsContent>
-        </Tabs>
+              {/* Empty State */}
+              {searchResults.length === 0 && !isLoadingSearch && (
+                <div className="text-center py-8 md:py-12">
+                  <div className="text-4xl md:text-6xl mb-4">🎼</div>
+                  <h3 className="text-xl md:text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
+                  <p className="text-gray-400">Search for your favorite songs and discover new music</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="playlists">
+              <PlaylistManager onPlayPlaylist={handlePlayAllFromPlaylist} />
+            </TabsContent>
+
+            <TabsContent value="playing" className="space-y-4 md:space-y-8">
+              {/* Enhanced Current Playing Section */}
+              {currentVideo && (
+                <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+                  <CardContent className="p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-4 md:mb-6">
+                      <img
+                        src={currentVideo.thumbnail}
+                        alt={currentVideo.title}
+                        className="w-24 h-18 md:w-32 md:h-24 object-cover rounded-lg shadow-lg"
+                      />
+                      <div className="flex-1 text-center md:text-left">
+                        <h3 className="text-lg md:text-xl font-semibold text-white mb-2">{currentVideo.title}</h3>
+                        <p className="text-gray-300 mb-4">{currentVideo.channel}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Enhanced Player Controls */}
+                    <EnhancedPlayerControls
+                      currentVideo={currentVideo}
+                      isPlaying={isPlaying}
+                      volume={volume}
+                      playlist={playlist}
+                      onTogglePlayPause={togglePlayPause}
+                      onPlayNext={playNext}
+                      onPlayPrevious={playPrevious}
+                      onVolumeChange={handleVolumeChange}
+                      onPlaylistUpdate={handlePlaylistUpdate}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Current Playlist */}
+              {playlist.length > 0 && (
+                <div>
+                  <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Current Playlist ({playlist.length} songs)</h2>
+                  <div className="space-y-2">
+                    {playlist.slice(0, 10).map((video, index) => (
+                      <Card 
+                        key={`playlist-${index}`}
+                        className={`cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 ${
+                          index === currentIndex ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/50' : ''
+                        }`}
+                        onClick={() => playVideo(video, index)}
+                      >
+                        <CardContent className="p-2 md:p-3">
+                          <div className="flex items-center space-x-3 md:space-x-4">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-12 h-9 md:w-16 md:h-12 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-white text-sm line-clamp-1">{video.title}</h4>
+                              <p className="text-gray-300 text-xs">{video.channel}</p>
+                            </div>
+                            <span className="text-gray-400 text-xs">{video.duration}</span>
+                            {index === currentIndex && isPlaying && (
+                              <div className="w-3 h-3 md:w-4 md:h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full animate-pulse" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {playlist.length > 10 && (
+                      <p className="text-center text-gray-400 text-sm mt-4">
+                        ...and {playlist.length - 10} more songs
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!currentVideo && (
+                <div className="text-center py-8 md:py-12">
+                  <div className="text-4xl md:text-6xl mb-4">🎵</div>
+                  <h3 className="text-xl md:text-2xl font-semibold mb-2">No Music Playing</h3>
+                  <p className="text-gray-400">Start playing some music to see it here</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="stats">
+              <StatsAndHistory onPlaySong={(song) => playVideo(song)} />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Mobile Player at Bottom */}
+        {currentVideo && (
+          <MobilePlayer
+            currentVideo={currentVideo}
+            isPlaying={isPlaying}
+            onTogglePlayPause={togglePlayPause}
+            onPlayNext={playNext}
+            onPlayPrevious={playPrevious}
+          />
+        )}
 
         {/* Local YouTube Player (fallback) */}
         <div id="youtube-player" className="hidden"></div>
