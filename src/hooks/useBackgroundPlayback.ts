@@ -54,18 +54,6 @@ export const useBackgroundPlayback = () => {
             badge: '/favicon.ico',
             tag: 'music-player',
             requireInteraction: true,
-            actions: [
-              {
-                action: 'play',
-                title: isPlaying ? '⏸️ Pause' : '▶️ Play',
-                icon: '/favicon.ico'
-              },
-              {
-                action: 'next',
-                title: '⏭️ Next',
-                icon: '/favicon.ico'
-              }
-            ],
             data: {
               videoId: video.id,
               action: 'music-control'
