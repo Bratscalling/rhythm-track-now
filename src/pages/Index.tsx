@@ -15,30 +15,201 @@ interface VideoData {
   views: string;
 }
 
+// Global player state to persist across page navigation
+declare global {
+  interface Window {
+    globalPlayer?: any;
+    globalPlayerState?: {
+      currentVideo: VideoData | null;
+      isPlaying: boolean;
+      volume: number;
+    };
+  }
+}
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
-  const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState<VideoData | null>(
+    window.globalPlayerState?.currentVideo || null
+  );
+  const [isPlaying, setIsPlaying] = useState(
+    window.globalPlayerState?.isPlaying || false
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [volume, setVolume] = useState([80]);
+  const [volume, setVolume] = useState([window.globalPlayerState?.volume || 80]);
   const playerRef = useRef<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load YouTube IFrame API
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    // Initialize global player state if it doesn't exist
+    if (!window.globalPlayerState) {
+      window.globalPlayerState = {
+        currentVideo: null,
+        isPlaying: false,
+        volume: 80,
+      };
+    }
 
-    // @ts-ignore
-    window.onYouTubeIframeAPIReady = () => {
-      console.log('YouTube API Ready');
+    // Load YouTube IFrame API if not already loaded
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      // @ts-ignore
+      window.onYouTubeIframeAPIReady = () => {
+        console.log('YouTube API Ready');
+        initializeGlobalPlayer();
+      };
+    } else {
+      initializeGlobalPlayer();
+    }
+
+    return () => {
+      // Don't destroy the player on component unmount to keep background playback
     };
   }, []);
 
-  const searchSongs = async () => {
+  const initializeGlobalPlayer = () => {
+    // Use existing global player or create new one
+    if (window.globalPlayer) {
+      playerRef.current = window.globalPlayer;
+      // Sync local state with global state
+      setCurrentVideo(window.globalPlayerState?.currentVideo || null);
+      setIsPlaying(window.globalPlayerState?.isPlaying || false);
+      setVolume([window.globalPlayerState?.volume || 80]);
+    } else if (window.YT && window.YT.Player) {
+      // Create persistent global player
+      const playerContainer = document.getElementById('global-youtube-player');
+      if (!playerContainer) {
+        const container = document.createElement('div');
+        container.id = 'global-youtube-player';
+        container.style.position = 'fixed';
+        container.style.top = '-1000px';
+        container.style.left = '-1000px';
+        container.style.width = '1px';
+        container.style.height = '1px';
+        document.body.appendChild(container);
+      }
+
+      // @ts-ignore
+      window.globalPlayer = new window.YT.Player('global-youtube-player', {
+        height: '1',
+        width: '1',
+        playerVars: {
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+        },
+        events: {
+          onReady: (event: any) => {
+            console.log('Global player ready');
+            playerRef.current = window.globalPlayer;
+          },
+          onStateChange: (event: any) => {
+            console.log('Global player state changed:', event.data);
+            // @ts-ignore
+            const isCurrentlyPlaying = event.data === window.YT.PlayerState.PLAYING;
+            // @ts-ignore
+            const isEnded = event.data === window.YT.PlayerState.ENDED;
+            // @ts-ignore
+            const isPaused = event.data === window.YT.PlayerState.PAUSED;
+
+            if (isCurrentlyPlaying || isPaused || isEnded) {
+              const newPlayingState = isCurrentlyPlaying;
+              setIsPlaying(newPlayingState);
+              if (window.globalPlayerState) {
+                window.globalPlayerState.isPlaying = newPlayingState;
+              }
+            }
+          },
+        },
+      });
+      playerRef.current = window.globalPlayer;
+    }
+  };
+
+  const playVideo = (video: VideoData) => {
+    setCurrentVideo(video);
+    
+    // Update global state
+    if (window.globalPlayerState) {
+      window.globalPlayerState.currentVideo = video;
+    }
+
+    if (!playerRef.current && window.globalPlayer) {
+      playerRef.current = window.globalPlayer;
+    }
+
+    if (!playerRef.current) {
+      toast({
+        title: "Player Not Ready",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Load and play the video
+    playerRef.current.loadVideoById({
+      videoId: video.id,
+      startSeconds: 0,
+    });
+    
+    playerRef.current.setVolume(volume[0]);
+    
+    setTimeout(() => {
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+      if (window.globalPlayerState) {
+        window.globalPlayerState.isPlaying = true;
+      }
+    }, 500);
+
+    toast({
+      title: "Now Playing",
+      description: video.title,
+    });
+  };
+
+  const togglePlayPause = () => {
+    if (!playerRef.current) {
+      if (window.globalPlayer) {
+        playerRef.current = window.globalPlayer;
+      } else {
+        return;
+      }
+    }
+
+    if (isPlaying) {
+      playerRef.current.pauseVideo();
+      setIsPlaying(false);
+      if (window.globalPlayerState) {
+        window.globalPlayerState.isPlaying = false;
+      }
+    } else {
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+      if (window.globalPlayerState) {
+        window.globalPlayerState.isPlaying = true;
+      }
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number[]) => {
+    setVolume(newVolume);
+    if (window.globalPlayerState) {
+      window.globalPlayerState.volume = newVolume[0];
+    }
+    if (playerRef.current) {
+      playerRef.current.setVolume(newVolume[0]);
+    }
+  };
+
+  async function searchSongs() {
     if (!searchQuery.trim()) return;
 
     setIsLoading(true);
@@ -115,94 +286,7 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const playVideo = (video: VideoData) => {
-    setCurrentVideo(video);
-    
-    // Destroy existing player if it exists
-    if (playerRef.current) {
-      playerRef.current.destroy();
-    }
-
-    // @ts-ignore
-    if (!window.YT || !window.YT.Player) {
-      toast({
-        title: "YouTube API Not Ready",
-        description: "Please wait a moment and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // @ts-ignore
-    playerRef.current = new window.YT.Player('youtube-player', {
-      height: '0',
-      width: '0',
-      videoId: video.id,
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        showinfo: 0,
-      },
-      events: {
-        onReady: (event: any) => {
-          event.target.setVolume(volume[0]);
-          setIsPlaying(true);
-          console.log('Player ready, starting video:', video.title);
-        },
-        onStateChange: (event: any) => {
-          console.log('Player state changed:', event.data);
-          // @ts-ignore
-          if (event.data === window.YT.PlayerState.ENDED) {
-            setIsPlaying(false);
-          }
-          // @ts-ignore
-          if (event.data === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
-          }
-          // @ts-ignore
-          if (event.data === window.YT.PlayerState.PAUSED) {
-            setIsPlaying(false);
-          }
-        },
-        onError: (event: any) => {
-          console.error('YouTube player error:', event.data);
-          toast({
-            title: "Playback Error",
-            description: "Unable to play this video. It might be restricted.",
-            variant: "destructive",
-          });
-        }
-      },
-    });
-
-    toast({
-      title: "Now Playing",
-      description: video.title,
-    });
-  };
-
-  const togglePlayPause = () => {
-    if (!playerRef.current) return;
-
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-      setIsPlaying(false);
-    } else {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleVolumeChange = (newVolume: number[]) => {
-    setVolume(newVolume);
-    if (playerRef.current) {
-      playerRef.current.setVolume(newVolume[0]);
-    }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
@@ -331,7 +415,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Hidden YouTube Player */}
+        {/* Local YouTube Player (fallback) */}
         <div id="youtube-player" className="hidden"></div>
       </div>
     </div>
