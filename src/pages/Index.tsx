@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { PlaylistDialog } from '@/components/PlaylistDialog';
 import { PlaylistManager } from '@/components/PlaylistManager';
+import { LoginForm } from '@/components/LoginForm';
+import { UserProfile } from '@/components/UserProfile';
+import { useAuth } from '@/hooks/useAuth';
 import { VideoData } from '@/types/playlist';
 
 // Import BackgroundMode with error handling for web environment
@@ -42,6 +45,8 @@ declare global {
 }
 
 const Index = () => {
+  const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
   const [randomSongs, setRandomSongs] = useState<VideoData[]>([]);
@@ -51,7 +56,7 @@ const Index = () => {
   const [isPlaying, setIsPlaying] = useState(
     window.globalPlayerState?.isPlaying || false
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
   const [isLoadingRandom, setIsLoadingRandom] = useState(false);
   const [volume, setVolume] = useState([window.globalPlayerState?.volume || 80]);
   const [playlist, setPlaylist] = useState<VideoData[]>(
@@ -64,6 +69,8 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     // Initialize global player state if it doesn't exist
     if (!window.globalPlayerState) {
       window.globalPlayerState = {
@@ -104,7 +111,7 @@ const Index = () => {
     return () => {
       // Don't destroy the player on component unmount to keep background playback
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const setupMediaSession = () => {
     if ('mediaSession' in navigator) {
@@ -510,7 +517,7 @@ const Index = () => {
   async function searchSongs() {
     if (!searchQuery.trim()) return;
 
-    setIsLoading(true);
+    setIsLoadingSearch(true);
     try {
       console.log('Searching for:', searchQuery);
       
@@ -589,8 +596,27 @@ const Index = () => {
       });
       setSearchResults([]);
     } finally {
-      setIsLoading(false);
+      setIsLoadingSearch(false);
     }
+  }
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
+            <div className="text-2xl">🎵</div>
+          </div>
+          <p className="text-white text-lg">Loading RhythmTrack...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm onLogin={login} />;
   }
 
   return (
@@ -604,12 +630,17 @@ const Index = () => {
       />
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent mb-4">
-            🎵 RhythmTrack
-          </h1>
-          <p className="text-xl text-gray-300">Your Personal Music Streaming Experience</p>
+        {/* Header with User Profile */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent mb-4">
+              🎵 RhythmTrack
+            </h1>
+            <p className="text-xl text-gray-300">Your Personal Music Streaming Experience</p>
+          </div>
+          <div className="absolute top-0 right-0">
+            <UserProfile user={user!} onLogout={logout} />
+          </div>
         </div>
 
         {/* Main Content with Tabs */}
@@ -644,10 +675,10 @@ const Index = () => {
                 />
                 <Button
                   onClick={searchSongs}
-                  disabled={isLoading}
+                  disabled={isLoadingSearch}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 px-6"
                 >
-                  {isLoading ? 'Searching...' : 'Search'}
+                  {isLoadingSearch ? 'Searching...' : 'Search'}
                 </Button>
               </div>
               
@@ -781,7 +812,7 @@ const Index = () => {
             )}
 
             {/* Empty State */}
-            {searchResults.length === 0 && !isLoading && (
+            {searchResults.length === 0 && !isLoadingSearch && (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🎼</div>
                 <h3 className="text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
