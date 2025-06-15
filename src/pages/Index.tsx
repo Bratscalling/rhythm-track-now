@@ -5,15 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-
-interface VideoData {
-  id: string;
-  title: string;
-  thumbnail: string;
-  duration: string;
-  channel: string;
-  views: string;
-}
+import { BackgroundMode } from '@capacitor/background-mode';
 
 // YouTube API type declarations
 declare global {
@@ -36,6 +28,15 @@ declare global {
   }
 }
 
+interface VideoData {
+  id: string;
+  title: string;
+  thumbnail: string;
+  duration: string;
+  channel: string;
+  views: string;
+}
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
@@ -51,6 +52,9 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize background mode for mobile
+    initializeBackgroundMode();
+
     // Initialize global player state if it doesn't exist
     if (!window.globalPlayerState) {
       window.globalPlayerState = {
@@ -82,6 +86,26 @@ const Index = () => {
       // Don't destroy the player on component unmount to keep background playback
     };
   }, []);
+
+  const initializeBackgroundMode = async () => {
+    try {
+      // Request background mode permissions
+      await BackgroundMode.enable();
+      
+      // Configure background mode settings
+      await BackgroundMode.setNotification({
+        title: 'RhythmTrack',
+        text: 'Music is playing in background',
+        silent: false,
+        resume: true,
+        hidden: false
+      });
+
+      console.log('Background mode initialized');
+    } catch (error) {
+      console.log('Background mode not available (web environment):', error);
+    }
+  };
 
   const setupMediaSession = () => {
     if ('mediaSession' in navigator) {
@@ -220,6 +244,9 @@ const Index = () => {
       return;
     }
 
+    // Enable background mode when starting playback
+    enableBackgroundPlayback();
+
     // Load and play the video
     playerRef.current.loadVideoById({
       videoId: video.id,
@@ -243,6 +270,15 @@ const Index = () => {
     });
   };
 
+  const enableBackgroundPlayback = async () => {
+    try {
+      await BackgroundMode.enable();
+      console.log('Background playback enabled');
+    } catch (error) {
+      console.log('Background mode not available:', error);
+    }
+  };
+
   const togglePlayPause = () => {
     if (!playerRef.current) {
       if (window.globalPlayer) {
@@ -264,6 +300,8 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
       }
+      // Re-enable background mode when resuming playback
+      enableBackgroundPlayback();
     }
   };
 
