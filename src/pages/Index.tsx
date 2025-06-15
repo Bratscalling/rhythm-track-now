@@ -75,10 +75,50 @@ const Index = () => {
       initializeGlobalPlayer();
     }
 
+    // Setup media session handlers
+    setupMediaSession();
+
     return () => {
       // Don't destroy the player on component unmount to keep background playback
     };
   }, []);
+
+  const setupMediaSession = () => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (playerRef.current || window.globalPlayer) {
+          const player = playerRef.current || window.globalPlayer;
+          player.playVideo();
+          setIsPlaying(true);
+          if (window.globalPlayerState) {
+            window.globalPlayerState.isPlaying = true;
+          }
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (playerRef.current || window.globalPlayer) {
+          const player = playerRef.current || window.globalPlayer;
+          player.pauseVideo();
+          setIsPlaying(false);
+          if (window.globalPlayerState) {
+            window.globalPlayerState.isPlaying = false;
+          }
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('stop', () => {
+        if (playerRef.current || window.globalPlayer) {
+          const player = playerRef.current || window.globalPlayer;
+          player.pauseVideo();
+          setIsPlaying(false);
+          if (window.globalPlayerState) {
+            window.globalPlayerState.isPlaying = false;
+          }
+        }
+      });
+    }
+  };
 
   const initializeGlobalPlayer = () => {
     // Use existing global player or create new one
@@ -128,6 +168,11 @@ const Index = () => {
               if (window.globalPlayerState) {
                 window.globalPlayerState.isPlaying = newPlayingState;
               }
+              
+              // Update media session playback state
+              if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = newPlayingState ? 'playing' : 'paused';
+              }
             }
           },
         },
@@ -136,38 +181,21 @@ const Index = () => {
     }
   };
 
-  const updateMediaSession = (video: VideoData, playing: boolean) => {
+  const updateMediaSession = (video: VideoData) => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: video.title,
         artist: video.channel,
         album: "RhythmTrack",
         artwork: [
+          { src: video.thumbnail, sizes: "96x96", type: "image/jpeg" },
+          { src: video.thumbnail, sizes: "128x128", type: "image/jpeg" },
+          { src: video.thumbnail, sizes: "192x192", type: "image/jpeg" },
+          { src: video.thumbnail, sizes: "256x256", type: "image/jpeg" },
+          { src: video.thumbnail, sizes: "384x384", type: "image/jpeg" },
           { src: video.thumbnail, sizes: "512x512", type: "image/jpeg" }
         ]
       });
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        if (playerRef.current) {
-          playerRef.current.playVideo();
-          setIsPlaying(true);
-          if (window.globalPlayerState) {
-            window.globalPlayerState.isPlaying = true;
-          }
-        }
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        if (playerRef.current) {
-          playerRef.current.pauseVideo();
-          setIsPlaying(false);
-          if (window.globalPlayerState) {
-            window.globalPlayerState.isPlaying = false;
-          }
-        }
-      });
-
-      navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
     }
   };
 
@@ -206,7 +234,7 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
       }
-      updateMediaSession(video, true);
+      updateMediaSession(video);
     }, 500);
 
     toast({
@@ -230,17 +258,11 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = false;
       }
-      if (currentVideo) {
-        updateMediaSession(currentVideo, false);
-      }
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
-      }
-      if (currentVideo) {
-        updateMediaSession(currentVideo, true);
       }
     }
   };
