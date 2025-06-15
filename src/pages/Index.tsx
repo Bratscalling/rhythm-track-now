@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Search, Play, Pause, Volume2, SkipForward, SkipBack } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,9 +59,6 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize background mode for mobile
-    initializeBackgroundMode();
-
     // Initialize global player state if it doesn't exist
     if (!window.globalPlayerState) {
       window.globalPlayerState = {
@@ -87,35 +83,13 @@ const Index = () => {
       initializeGlobalPlayer();
     }
 
-    // Setup media session handlers
+    // Setup media session handlers for background playback
     setupMediaSession();
 
     return () => {
       // Don't destroy the player on component unmount to keep background playback
     };
   }, []);
-
-  const initializeBackgroundMode = async () => {
-    try {
-      if (BackgroundMode) {
-        // Request background mode permissions
-        await BackgroundMode.enable();
-        
-        // Configure background mode settings
-        await BackgroundMode.setNotification({
-          title: 'RhythmTrack',
-          text: 'Music is playing in background',
-          silent: false,
-          resume: true,
-          hidden: false
-        });
-
-        console.log('Background mode initialized');
-      }
-    } catch (error) {
-      console.log('Background mode not available (web environment):', error);
-    }
-  };
 
   const setupMediaSession = () => {
     if ('mediaSession' in navigator) {
@@ -150,6 +124,17 @@ const Index = () => {
             window.globalPlayerState.isPlaying = false;
           }
         }
+      });
+
+      // Set up next/previous track handlers if needed
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        // Could implement playlist functionality here
+        console.log('Next track requested');
+      });
+      
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        // Could implement playlist functionality here
+        console.log('Previous track requested');
       });
     }
   };
@@ -230,6 +215,9 @@ const Index = () => {
           { src: video.thumbnail, sizes: "512x512", type: "image/jpeg" }
         ]
       });
+      
+      // Set playback state
+      navigator.mediaSession.playbackState = 'playing';
     }
   };
 
@@ -254,9 +242,6 @@ const Index = () => {
       return;
     }
 
-    // Enable background mode when starting playback
-    enableBackgroundPlayback();
-
     // Load and play the video
     playerRef.current.loadVideoById({
       videoId: video.id,
@@ -280,17 +265,6 @@ const Index = () => {
     });
   };
 
-  const enableBackgroundPlayback = async () => {
-    try {
-      if (BackgroundMode) {
-        await BackgroundMode.enable();
-        console.log('Background playback enabled');
-      }
-    } catch (error) {
-      console.log('Background mode not available:', error);
-    }
-  };
-
   const togglePlayPause = () => {
     if (!playerRef.current) {
       if (window.globalPlayer) {
@@ -306,14 +280,18 @@ const Index = () => {
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = false;
       }
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
       if (window.globalPlayerState) {
         window.globalPlayerState.isPlaying = true;
       }
-      // Re-enable background mode when resuming playback
-      enableBackgroundPlayback();
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     }
   };
 

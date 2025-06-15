@@ -8,14 +8,6 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://520a64c5-fc61-40a7-ac44-7a1146f1c5af.lovableproject.com?forceHideBadge=true',
     cleartext: true
-  },
-  plugins: {
-    BackgroundMode: {
-      enabled: true,
-      title: 'RhythmTrack is playing music',
-      text: 'Background music playback active',
-      silent: false
-    }
   }
 };
 
