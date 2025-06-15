@@ -15,9 +15,18 @@ interface VideoData {
   views: string;
 }
 
-// Global player state to persist across page navigation
+// YouTube API type declarations
 declare global {
   interface Window {
+    YT?: {
+      Player: new (elementId: string, config: any) => any;
+      PlayerState: {
+        PLAYING: number;
+        PAUSED: number;
+        ENDED: number;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
     globalPlayer?: any;
     globalPlayerState?: {
       currentVideo: VideoData | null;
@@ -58,7 +67,6 @@ const Index = () => {
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
-      // @ts-ignore
       window.onYouTubeIframeAPIReady = () => {
         console.log('YouTube API Ready');
         initializeGlobalPlayer();
@@ -94,7 +102,6 @@ const Index = () => {
         document.body.appendChild(container);
       }
 
-      // @ts-ignore
       window.globalPlayer = new window.YT.Player('global-youtube-player', {
         height: '1',
         width: '1',
@@ -111,12 +118,9 @@ const Index = () => {
           },
           onStateChange: (event: any) => {
             console.log('Global player state changed:', event.data);
-            // @ts-ignore
-            const isCurrentlyPlaying = event.data === window.YT.PlayerState.PLAYING;
-            // @ts-ignore
-            const isEnded = event.data === window.YT.PlayerState.ENDED;
-            // @ts-ignore
-            const isPaused = event.data === window.YT.PlayerState.PAUSED;
+            const isCurrentlyPlaying = event.data === window.YT?.PlayerState.PLAYING;
+            const isEnded = event.data === window.YT?.PlayerState.ENDED;
+            const isPaused = event.data === window.YT?.PlayerState.PAUSED;
 
             if (isCurrentlyPlaying || isPaused || isEnded) {
               const newPlayingState = isCurrentlyPlaying;
