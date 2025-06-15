@@ -15,6 +15,7 @@ import { EnhancedSearch } from '@/components/EnhancedSearch';
 import { EnhancedPlayerControls } from '@/components/EnhancedPlayerControls';
 import { StatsAndHistory } from '@/components/StatsAndHistory';
 import { MobilePlayer } from '@/components/MobilePlayer';
+import { BackgroundMusicNotification } from '@/components/BackgroundMusicNotification';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
@@ -112,7 +113,7 @@ const Index = () => {
     }
 
     // Setup media session handlers for background playback
-    setupMediaSession();
+    setupMediaSessionHandlers();
 
     // Enable background mode for mobile
     if (BackgroundMode) {
@@ -127,7 +128,7 @@ const Index = () => {
     };
   }, [isAuthenticated]);
 
-  const setupMediaSession = () => {
+  const setupMediaSessionHandlers = () => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.setActionHandler('play', () => {
         if (playerRef.current || window.globalPlayer) {

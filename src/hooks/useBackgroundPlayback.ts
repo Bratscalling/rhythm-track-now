@@ -51,7 +51,6 @@ export const useBackgroundPlayback = () => {
           registration.showNotification(`🎵 ${video.title}`, {
             body: `by ${video.channel}`,
             icon: video.thumbnail,
-            image: video.thumbnail,
             badge: '/favicon.ico',
             tag: 'music-player',
             requireInteraction: true,
