@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -392,71 +391,57 @@ const Index = () => {
     try {
       console.log('Searching for:', searchQuery);
       
-      // Enhanced search with more variations to get 20-30 results
+      // Optimized search with only 3-4 strategic variations for faster results
       const searchVariations = [
         searchQuery,
         `${searchQuery} official`,
-        `${searchQuery} music video`,
-        `${searchQuery} audio`,
-        `${searchQuery} song`,
-        `${searchQuery} remix`,
-        `${searchQuery} acoustic`,
-        `${searchQuery} live`,
-        `${searchQuery} cover`,
-        `${searchQuery} instrumental`,
-        `${searchQuery} karaoke`,
-        `${searchQuery} lyrics`,
-        `best ${searchQuery}`,
-        `top ${searchQuery}`,
-        `${searchQuery} hits`,
-        `${searchQuery} playlist`,
-        `${searchQuery} mix`,
-        `${searchQuery} compilation`,
-        `${searchQuery} full album`,
-        `${searchQuery} extended`
+        `${searchQuery} music`,
+        `${searchQuery} song`
       ];
 
       const results: VideoData[] = [];
-      const maxResults = 30;
-      let currentResults = 0;
+      const maxResults = 25;
 
-      // Try to get results for each variation until we have enough
-      for (let i = 0; i < searchVariations.length && currentResults < maxResults; i++) {
+      // Use Promise.all for parallel requests instead of sequential
+      const searchPromises = searchVariations.map(async (variation) => {
         try {
           const response = await fetch(
-            `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(searchVariations[i])}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
+            `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(variation)}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
           );
           
           if (response.ok) {
             const data = await response.json();
-            console.log(`API Response for "${searchVariations[i]}":`, data);
-            
             if (data.videoId && data.title) {
-              // Check if we already have this video
-              const isDuplicate = results.some(result => result.id === data.videoId);
-              
-              if (!isDuplicate) {
-                results.push({
-                  id: data.videoId,
-                  title: data.title,
-                  thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
-                  duration: data.duration || '0:00',
-                  channel: data.author || 'Unknown',
-                  views: (data.views ? data.views + ' views' : 'Unknown views')
-                });
-                currentResults++;
-              }
+              return {
+                id: data.videoId,
+                title: data.title,
+                thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
+                duration: data.duration || '0:00',
+                channel: data.author || 'Unknown',
+                views: (data.views ? data.views + ' views' : 'Unknown views')
+              };
             }
           }
-          
-          // Add a small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
-          console.error(`Error fetching for "${searchVariations[i]}":`, error);
+          console.error(`Error fetching for "${variation}":`, error);
         }
-      }
+        return null;
+      });
 
-      if (results.length === 0) {
+      // Wait for all requests to complete
+      const searchResults = await Promise.all(searchPromises);
+      
+      // Filter out null results and duplicates
+      const uniqueResults = new Map();
+      searchResults.forEach(result => {
+        if (result && !uniqueResults.has(result.id)) {
+          uniqueResults.set(result.id, result);
+        }
+      });
+
+      const finalResults = Array.from(uniqueResults.values()).slice(0, maxResults);
+
+      if (finalResults.length === 0) {
         toast({
           title: "No Results Found",
           description: `No songs found for "${searchQuery}". Try a different search term.`,
@@ -466,11 +451,11 @@ const Index = () => {
         return;
       }
 
-      setSearchResults(results);
+      setSearchResults(finalResults);
       
       toast({
         title: "Search Complete",
-        description: `Found ${results.length} result(s) for "${searchQuery}"`,
+        description: `Found ${finalResults.length} result(s) for "${searchQuery}"`,
       });
     } catch (error) {
       console.error('Search error:', error);
