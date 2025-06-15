@@ -27,10 +27,12 @@ export const usePlaylist = (userId?: string) => {
 
   // Save user-specific playlists to localStorage whenever they change
   useEffect(() => {
-    if (!userId || playlists.length === 0) return;
+    if (!userId) return;
     
     const userPlaylistKey = `user_playlists_${userId}`;
-    localStorage.setItem(userPlaylistKey, JSON.stringify(playlists));
+    if (playlists.length > 0) {
+      localStorage.setItem(userPlaylistKey, JSON.stringify(playlists));
+    }
   }, [playlists, userId]);
 
   const createPlaylist = (name: string, description?: string): Playlist => {

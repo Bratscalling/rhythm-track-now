@@ -31,12 +31,34 @@ export const useAuth = () => {
   }, []);
 
   const login = (email: string, name: string) => {
-    const user: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8b5cf6&color=fff&size=128`
-    };
+    // Use email as the consistent user identifier
+    const userId = btoa(email.toLowerCase()).replace(/[^a-zA-Z0-9]/g, '');
+    
+    // Check if user already exists
+    const existingUsersKey = 'rhythmtrack_all_users';
+    const existingUsers = JSON.parse(localStorage.getItem(existingUsersKey) || '{}');
+    
+    let user: User;
+    
+    if (existingUsers[email.toLowerCase()]) {
+      // User exists, load their data
+      user = existingUsers[email.toLowerCase()];
+      // Update name in case it changed
+      user.name = name;
+      user.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8b5cf6&color=fff&size=128`;
+    } else {
+      // New user, create account
+      user = {
+        id: userId,
+        email: email.toLowerCase(),
+        name,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8b5cf6&color=fff&size=128`
+      };
+    }
+
+    // Save user to the all users registry
+    existingUsers[email.toLowerCase()] = user;
+    localStorage.setItem(existingUsersKey, JSON.stringify(existingUsers));
 
     setAuthState({
       user,
