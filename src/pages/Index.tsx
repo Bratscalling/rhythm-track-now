@@ -28,7 +28,7 @@ declare global {
 }
 
 const Index = () => {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, login, logout } = useAuth();
   const { playlists, addSongToPlaylist } = usePlaylist(user?.id);
   const { addToHistory } = useListeningHistory(user?.id);
   const { toast } = useToast();
@@ -46,6 +46,9 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Background music notification state
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // YouTube player
   const playerRef = useRef<any>(null);
@@ -67,7 +70,6 @@ const Index = () => {
     }
   }, []);
 
-  // Create YouTube player
   useEffect(() => {
     if (isPlayerReady && !playerRef.current) {
       playerRef.current = new window.YT.Player('youtube-player', {
@@ -102,7 +104,6 @@ const Index = () => {
     }
   }, [isPlayerReady]);
 
-  // Update player time
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying && playerRef.current) {
@@ -128,14 +129,16 @@ const Index = () => {
           title: 'Rick Astley - Never Gonna Give You Up',
           channel: 'Rick Astley',
           duration: '3:33',
-          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg'
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+          views: '1.4B views'
         },
         {
           id: 'kJQP7kiw5Fk',
           title: 'Despacito - Luis Fonsi ft. Daddy Yankee',
           channel: 'Luis Fonsi',
           duration: '4:42',
-          thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg'
+          thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg',
+          views: '8.3B views'
         }
       ];
       
@@ -205,7 +208,7 @@ const Index = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginForm />;
+    return <LoginForm onLogin={login} />;
   }
 
   return (
@@ -219,7 +222,7 @@ const Index = () => {
               RhythTrack
             </h1>
           </div>
-          <UserProfile />
+          <UserProfile user={user!} onLogout={logout} />
         </header>
 
         {/* Search */}
@@ -298,7 +301,6 @@ const Index = () => {
         {currentVideo && (
           <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 p-4">
             <div className="container mx-auto max-w-7xl">
-              {/* Progress Bar */}
               <div className="mb-4">
                 <Progress
                   value={duration > 0 ? (currentTime / duration) * 100 : 0}
@@ -310,7 +312,6 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Current Song Info & Controls */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 flex-1">
                   <img
@@ -348,10 +349,27 @@ const Index = () => {
         <div id="youtube-player" style={{ display: 'none' }}></div>
 
         {/* Mobile Player */}
-        <MobilePlayer />
+        {currentVideo && (
+          <MobilePlayer 
+            currentVideo={currentVideo}
+            isPlaying={isPlaying}
+            onTogglePlayPause={togglePlayPause}
+            onPlayNext={handleNext}
+            onPlayPrevious={handlePrevious}
+          />
+        )}
         
         {/* Background Music Notification */}
-        <BackgroundMusicNotification />
+        <BackgroundMusicNotification 
+          currentVideo={currentVideo}
+          isPlaying={isPlaying}
+          isMinimized={isMinimized}
+          onTogglePlayPause={togglePlayPause}
+          onPlayNext={handleNext}
+          onPlayPrevious={handlePrevious}
+          onClose={() => setCurrentVideo(null)}
+          onToggleMinimize={() => setIsMinimized(!isMinimized)}
+        />
       </div>
     </div>
   );
