@@ -24,7 +24,9 @@ export const EnhancedSearch = ({ searchQuery, setSearchQuery, onSearch, isLoadin
 
   useEffect(() => {
     // Check if browser supports speech recognition
-    setIsVoiceSupported('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+    setIsVoiceSupported(
+      'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+    );
   }, []);
 
   const handleSearch = () => {
@@ -45,8 +47,10 @@ export const EnhancedSearch = ({ searchQuery, setSearchQuery, onSearch, isLoadin
   const handleVoiceSearch = () => {
     if (!isVoiceSupported) return;
 
-    const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const SpeechRecognitionConstructor = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (!SpeechRecognitionConstructor) return;
+
+    const recognition = new SpeechRecognitionConstructor();
     
     recognition.continuous = false;
     recognition.interimResults = false;
