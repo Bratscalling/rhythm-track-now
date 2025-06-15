@@ -71,11 +71,12 @@ export const BackgroundMusicNotification = ({
         style={{ left: position.x, top: position.y }}
         onMouseDown={handleMouseDown}
       >
-        <Card className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 border-0 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+        <Card className={`w-full h-full btn-primary border-0 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer ${isPlaying ? 'playing-glow' : ''}`}>
           <div 
-            className="w-full h-full flex items-center justify-center text-white text-2xl"
+            className="w-full h-full flex items-center justify-center text-white text-2xl relative overflow-hidden"
             onClick={onToggleMinimize}
           >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
             {isPlaying ? '⏸️' : '▶️'}
           </div>
         </Card>
@@ -88,7 +89,7 @@ export const BackgroundMusicNotification = ({
       className="fixed z-50 w-80"
       style={{ left: position.x, top: position.y }}
     >
-      <Card className="bg-gray-900/95 backdrop-blur-sm border-gray-700 shadow-2xl">
+      <Card className="card-premium shadow-2xl border-white/30">
         <div className="p-4">
           {/* Header with drag handle */}
           <div 
@@ -96,39 +97,42 @@ export const BackgroundMusicNotification = ({
             onMouseDown={handleMouseDown}
           >
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-full shadow-lg"></div>
+              <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full shadow-lg"></div>
+              <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg"></div>
             </div>
             <div className="flex items-center space-x-2">
               <Button
                 onClick={onToggleMinimize}
                 size="sm"
                 variant="ghost"
-                className="w-6 h-6 p-0 text-gray-400 hover:text-white"
+                className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-white/20 rounded-full transition-all duration-300"
               >
-                <VolumeX className="w-3 h-3" />
+                <VolumeX className="w-4 h-4" />
               </Button>
               <Button
                 onClick={onClose}
                 size="sm"
                 variant="ghost"
-                className="w-6 h-6 p-0 text-gray-400 hover:text-white"
+                className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-white/20 rounded-full transition-all duration-300"
               >
-                <X className="w-3 h-3" />
+                <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
           {/* Song Info */}
           <div className="flex items-center space-x-3 mb-4">
-            <img
-              src={currentVideo.thumbnail}
-              alt={currentVideo.title}
-              className="w-12 h-9 object-cover rounded"
-            />
+            <div className="relative">
+              <img
+                src={currentVideo.thumbnail}
+                alt={currentVideo.title}
+                className="w-14 h-10 object-cover rounded-lg shadow-lg"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg"></div>
+            </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-white text-sm line-clamp-1">
+              <h4 className="font-semibold text-white text-sm line-clamp-1 mb-1">
                 {currentVideo.title}
               </h4>
               <p className="text-gray-300 text-xs line-clamp-1">
@@ -142,8 +146,7 @@ export const BackgroundMusicNotification = ({
             <Button
               onClick={onPlayPrevious}
               size="sm"
-              variant="ghost"
-              className="rounded-full w-8 h-8 p-0 text-white hover:bg-white/20"
+              className="rounded-full w-10 h-10 p-0 btn-glass"
             >
               <span>⏮️</span>
             </Button>
@@ -151,9 +154,10 @@ export const BackgroundMusicNotification = ({
             <Button
               onClick={onTogglePlayPause}
               size="sm"
-              className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-10 h-10 p-0"
+              className={`rounded-full btn-primary w-12 h-12 p-0 ${isPlaying ? 'playing-glow' : ''} relative overflow-hidden`}
             >
-              <span className="text-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"></div>
+              <span className="text-lg relative z-10">
                 {isPlaying ? '⏸️' : '▶️'}
               </span>
             </Button>
@@ -161,8 +165,7 @@ export const BackgroundMusicNotification = ({
             <Button
               onClick={onPlayNext}
               size="sm"
-              variant="ghost"
-              className="rounded-full w-8 h-8 p-0 text-white hover:bg-white/20"
+              className="rounded-full w-10 h-10 p-0 btn-glass"
             >
               <span>⏭️</span>
             </Button>

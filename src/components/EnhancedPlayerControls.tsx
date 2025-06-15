@@ -52,23 +52,23 @@ export const EnhancedPlayerControls = ({
 
   const getRepeatColor = () => {
     return repeatMode !== 'off' 
-      ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
-      : 'bg-white/10 hover:bg-white/20';
+      ? 'btn-success' 
+      : 'btn-glass';
   };
 
   return (
-    <div className="flex items-center justify-center space-x-4">
+    <div className="flex items-center justify-center space-x-6">
       {/* Shuffle Button */}
       <Button
         onClick={handleShuffleToggle}
         size="sm"
-        className={`rounded-full w-10 h-10 p-0 ${
+        className={`rounded-full w-12 h-12 p-0 ${
           isShuffled 
-            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
-            : 'bg-white/10 hover:bg-white/20'
+            ? 'btn-success' 
+            : 'btn-glass'
         }`}
       >
-        <Shuffle className="w-4 h-4" />
+        <Shuffle className="w-5 h-5" />
       </Button>
 
       {/* Previous Button */}
@@ -76,18 +76,19 @@ export const EnhancedPlayerControls = ({
         onClick={onPlayPrevious}
         size="lg"
         disabled={playlist.length === 0}
-        className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+        className="rounded-full btn-glass w-14 h-14 p-0 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <SkipBack className="w-5 h-5" />
+        <SkipBack className="w-6 h-6" />
       </Button>
 
       {/* Play/Pause Button */}
       <Button
         onClick={onTogglePlayPause}
         size="lg"
-        className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-14 h-14 p-0"
+        className={`rounded-full btn-primary w-16 h-16 p-0 ${isPlaying ? 'playing-glow' : ''} relative overflow-hidden`}
       >
-        {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-purple-600/20 animate-pulse"></div>
+        {isPlaying ? <Pause className="w-7 h-7 relative z-10" /> : <Play className="w-7 h-7 ml-0.5 relative z-10" />}
       </Button>
 
       {/* Next Button */}
@@ -95,16 +96,16 @@ export const EnhancedPlayerControls = ({
         onClick={onPlayNext}
         size="lg"
         disabled={playlist.length === 0}
-        className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+        className="rounded-full btn-glass w-14 h-14 p-0 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <SkipForward className="w-5 h-5" />
+        <SkipForward className="w-6 h-6" />
       </Button>
 
       {/* Repeat Button */}
       <Button
         onClick={cycleRepeatMode}
         size="sm"
-        className={`rounded-full w-10 h-10 p-0 ${getRepeatColor()}`}
+        className={`rounded-full w-12 h-12 p-0 ${getRepeatColor()}`}
       >
         {getRepeatIcon()}
       </Button>
@@ -114,27 +115,29 @@ export const EnhancedPlayerControls = ({
         <Button
           onClick={() => toggleFavorite(currentVideo)}
           size="sm"
-          className={`rounded-full w-10 h-10 p-0 ${
+          className={`rounded-full w-12 h-12 p-0 ${
             isFavorite(currentVideo.id)
-              ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-              : 'bg-white/10 hover:bg-white/20'
+              ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105'
+              : 'btn-glass'
           }`}
         >
-          <Heart className={`w-4 h-4 ${isFavorite(currentVideo.id) ? 'fill-current' : ''}`} />
+          <Heart className={`w-5 h-5 ${isFavorite(currentVideo.id) ? 'fill-current' : ''}`} />
         </Button>
       )}
 
       {/* Volume Control */}
-      <div className="flex items-center space-x-2 ml-6">
-        <Volume2 className="w-4 h-4 text-gray-300" />
+      <div className="flex items-center space-x-3 ml-8">
+        <div className="p-2 rounded-full glass-button">
+          <Volume2 className="w-5 h-5 text-gray-300" />
+        </div>
         <Slider
           value={volume}
           onValueChange={onVolumeChange}
           max={100}
           step={1}
-          className="w-24"
+          className="w-28"
         />
-        <span className="text-sm text-gray-300 w-8">{volume[0]}</span>
+        <span className="text-sm text-gray-300 w-10 font-medium">{volume[0]}</span>
       </div>
     </div>
   );
