@@ -13,7 +13,7 @@ Check out the live version here: [Click to Visit](https://yourwebsiteurl.vercel.
 
 ## 📸 Preview
 
-![Website Screenshot](./preview.png)  
+![Website Screenshot](https://i.ibb.co/6cFQHgQW/image.jpg)  
 *(Optional: Add a screenshot of your homepage UI)*
 
 ---
@@ -71,4 +71,3 @@ This project is open-source and free to use. Feel free to fork or contribute!
 
 - YouTube Data API (or other sources)
 - Inspiration from Spotify, YouTube Music UI
-
