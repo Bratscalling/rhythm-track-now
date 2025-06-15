@@ -1,5 +1,6 @@
+
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, Volume2, SkipForward, SkipBack } from 'lucide-react';
+import { Search, Play, Pause, Volume2, SkipForward, SkipBack, Heart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -31,6 +32,8 @@ declare global {
       currentVideo: VideoData | null;
       isPlaying: boolean;
       volume: number;
+      playlist: VideoData[];
+      currentIndex: number;
     };
   }
 }
@@ -55,6 +58,12 @@ const Index = () => {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [volume, setVolume] = useState([window.globalPlayerState?.volume || 80]);
+  const [playlist, setPlaylist] = useState<VideoData[]>(
+    window.globalPlayerState?.playlist || []
+  );
+  const [currentIndex, setCurrentIndex] = useState(
+    window.globalPlayerState?.currentIndex || 0
+  );
   const playerRef = useRef<any>(null);
   const { toast } = useToast();
 
@@ -65,6 +74,8 @@ const Index = () => {
         currentVideo: null,
         isPlaying: false,
         volume: 80,
+        playlist: [],
+        currentIndex: 0,
       };
     }
 
@@ -85,6 +96,11 @@ const Index = () => {
 
     // Setup media session handlers for background playback
     setupMediaSession();
+
+    // Enable background mode for mobile
+    if (BackgroundMode) {
+      BackgroundMode.enable();
+    }
 
     return () => {
       // Don't destroy the player on component unmount to keep background playback
@@ -126,15 +142,12 @@ const Index = () => {
         }
       });
 
-      // Set up next/previous track handlers if needed
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        // Could implement playlist functionality here
-        console.log('Next track requested');
+        playNext();
       });
       
       navigator.mediaSession.setActionHandler('previoustrack', () => {
-        // Could implement playlist functionality here
-        console.log('Previous track requested');
+        playPrevious();
       });
     }
   };
@@ -147,6 +160,8 @@ const Index = () => {
       setCurrentVideo(window.globalPlayerState?.currentVideo || null);
       setIsPlaying(window.globalPlayerState?.isPlaying || false);
       setVolume([window.globalPlayerState?.volume || 80]);
+      setPlaylist(window.globalPlayerState?.playlist || []);
+      setCurrentIndex(window.globalPlayerState?.currentIndex || 0);
     } else if (window.YT && window.YT.Player) {
       // Create persistent global player
       const playerContainer = document.getElementById('global-youtube-player');
@@ -169,6 +184,7 @@ const Index = () => {
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
+          autoplay: 1,
         },
         events: {
           onReady: (event: any) => {
@@ -181,7 +197,7 @@ const Index = () => {
             const isEnded = event.data === window.YT?.PlayerState.ENDED;
             const isPaused = event.data === window.YT?.PlayerState.PAUSED;
 
-            if (isCurrentlyPlaying || isPaused || isEnded) {
+            if (isCurrentlyPlaying || isPaused) {
               const newPlayingState = isCurrentlyPlaying;
               setIsPlaying(newPlayingState);
               if (window.globalPlayerState) {
@@ -192,6 +208,11 @@ const Index = () => {
               if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = newPlayingState ? 'playing' : 'paused';
               }
+            }
+
+            // Auto-play next song when current song ends
+            if (isEnded) {
+              playNext();
             }
           },
         },
@@ -221,8 +242,15 @@ const Index = () => {
     }
   };
 
-  const playVideo = (video: VideoData) => {
+  const playVideo = (video: VideoData, index?: number) => {
     setCurrentVideo(video);
+    
+    if (index !== undefined) {
+      setCurrentIndex(index);
+      if (window.globalPlayerState) {
+        window.globalPlayerState.currentIndex = index;
+      }
+    }
     
     // Update global state
     if (window.globalPlayerState) {
@@ -262,6 +290,58 @@ const Index = () => {
     toast({
       title: "Now Playing",
       description: video.title,
+    });
+  };
+
+  const playNext = () => {
+    if (playlist.length === 0) return;
+    
+    const nextIndex = (currentIndex + 1) % playlist.length;
+    const nextVideo = playlist[nextIndex];
+    
+    if (nextVideo) {
+      playVideo(nextVideo, nextIndex);
+    }
+  };
+
+  const playPrevious = () => {
+    if (playlist.length === 0) return;
+    
+    const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
+    const prevVideo = playlist[prevIndex];
+    
+    if (prevVideo) {
+      playVideo(prevVideo, prevIndex);
+    }
+  };
+
+  const addToPlaylist = (video: VideoData) => {
+    const newPlaylist = [...playlist, video];
+    setPlaylist(newPlaylist);
+    
+    if (window.globalPlayerState) {
+      window.globalPlayerState.playlist = newPlaylist;
+    }
+    
+    toast({
+      title: "Added to Playlist",
+      description: video.title,
+    });
+  };
+
+  const playAllFromSearch = () => {
+    if (searchResults.length === 0) return;
+    
+    setPlaylist(searchResults);
+    if (window.globalPlayerState) {
+      window.globalPlayerState.playlist = searchResults;
+    }
+    
+    playVideo(searchResults[0], 0);
+    
+    toast({
+      title: "Playing All",
+      description: `${searchResults.length} songs added to playlist`,
     });
   };
 
@@ -312,19 +392,36 @@ const Index = () => {
     try {
       console.log('Searching for:', searchQuery);
       
-      // Try multiple search variations to get more results
+      // Enhanced search with more variations to get 20-30 results
       const searchVariations = [
         searchQuery,
         `${searchQuery} official`,
         `${searchQuery} music video`,
         `${searchQuery} audio`,
-        `${searchQuery} song`
+        `${searchQuery} song`,
+        `${searchQuery} remix`,
+        `${searchQuery} acoustic`,
+        `${searchQuery} live`,
+        `${searchQuery} cover`,
+        `${searchQuery} instrumental`,
+        `${searchQuery} karaoke`,
+        `${searchQuery} lyrics`,
+        `best ${searchQuery}`,
+        `top ${searchQuery}`,
+        `${searchQuery} hits`,
+        `${searchQuery} playlist`,
+        `${searchQuery} mix`,
+        `${searchQuery} compilation`,
+        `${searchQuery} full album`,
+        `${searchQuery} extended`
       ];
 
       const results: VideoData[] = [];
+      const maxResults = 30;
+      let currentResults = 0;
 
-      // Try to get results for each variation
-      for (let i = 0; i < Math.min(3, searchVariations.length); i++) {
+      // Try to get results for each variation until we have enough
+      for (let i = 0; i < searchVariations.length && currentResults < maxResults; i++) {
         try {
           const response = await fetch(
             `https://kaiz-apis.gleeze.com/api/yt-metadata?title=${encodeURIComponent(searchVariations[i])}&apikey=7a194df7-7109-4bfb-9560-ef474230053f`
@@ -335,16 +432,25 @@ const Index = () => {
             console.log(`API Response for "${searchVariations[i]}":`, data);
             
             if (data.videoId && data.title) {
-              results.push({
-                id: data.videoId,
-                title: data.title,
-                thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
-                duration: data.duration || '0:00',
-                channel: data.author || 'Unknown',
-                views: (data.views ? data.views + ' views' : 'Unknown views')
-              });
+              // Check if we already have this video
+              const isDuplicate = results.some(result => result.id === data.videoId);
+              
+              if (!isDuplicate) {
+                results.push({
+                  id: data.videoId,
+                  title: data.title,
+                  thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.videoId}/hq720.jpg`,
+                  duration: data.duration || '0:00',
+                  channel: data.author || 'Unknown',
+                  views: (data.views ? data.views + ' views' : 'Unknown views')
+                });
+                currentResults++;
+              }
             }
           }
+          
+          // Add a small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
           console.error(`Error fetching for "${searchVariations[i]}":`, error);
         }
@@ -360,16 +466,11 @@ const Index = () => {
         return;
       }
 
-      // Remove duplicates based on video ID
-      const uniqueResults = results.filter((result, index, self) => 
-        index === self.findIndex(r => r.id === result.id)
-      );
-
-      setSearchResults(uniqueResults);
+      setSearchResults(results);
       
       toast({
         title: "Search Complete",
-        description: `Found ${uniqueResults.length} result(s) for "${searchQuery}"`,
+        description: `Found ${results.length} result(s) for "${searchQuery}"`,
       });
     } catch (error) {
       console.error('Search error:', error);
@@ -400,7 +501,7 @@ const Index = () => {
           <h1 className="text-6xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent mb-4">
             🎵 RhythmTrack
           </h1>
-          <p className="text-xl text-gray-300">Discover and play your favorite YouTube songs</p>
+          <p className="text-xl text-gray-300">Your Personal Music Streaming Experience</p>
         </div>
 
         {/* Search Section */}
@@ -442,11 +543,29 @@ const Index = () => {
                   {/* Player Controls */}
                   <div className="flex items-center space-x-4">
                     <Button
+                      onClick={playPrevious}
+                      size="lg"
+                      disabled={playlist.length === 0}
+                      className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+                    >
+                      <SkipBack className="w-5 h-5" />
+                    </Button>
+                    
+                    <Button
                       onClick={togglePlayPause}
                       size="lg"
                       className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-12 h-12 p-0"
                     >
                       {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                    </Button>
+                    
+                    <Button
+                      onClick={playNext}
+                      size="lg"
+                      disabled={playlist.length === 0}
+                      className="rounded-full bg-white/10 hover:bg-white/20 w-12 h-12 p-0"
+                    >
+                      <SkipForward className="w-5 h-5" />
                     </Button>
                     
                     <div className="flex items-center space-x-2 flex-1 max-w-xs">
@@ -469,35 +588,98 @@ const Index = () => {
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-center">Search Results</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {searchResults.map((video) => (
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Search Results ({searchResults.length} songs)</h2>
+              <Button
+                onClick={playAllFromSearch}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Play All
+              </Button>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {searchResults.map((video, index) => (
                 <Card 
                   key={video.id}
                   className="group cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
-                  onClick={() => playVideo(video)}
                 >
                   <CardContent className="p-4">
                     <div className="relative mb-4">
                       <img
                         src={video.thumbnail}
                         alt={video.title}
-                        className="w-full h-40 object-cover rounded-lg"
+                        className="w-full h-32 object-cover rounded-lg"
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
-                        <Play className="w-12 h-12 text-white" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center space-x-2">
+                        <Button
+                          onClick={() => playVideo(video, index)}
+                          size="sm"
+                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={() => addToPlaylist(video)}
+                          size="sm"
+                          className="rounded-full bg-white/20 hover:bg-white/30 p-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
                       </div>
                       <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                         {video.duration}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-white mb-2 line-clamp-2">{video.title}</h3>
-                    <p className="text-gray-300 text-sm mb-1">{video.channel}</p>
+                    <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm">{video.title}</h3>
+                    <p className="text-gray-300 text-xs mb-1">{video.channel}</p>
                     <p className="text-gray-400 text-xs">{video.views}</p>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Current Playlist */}
+        {playlist.length > 0 && (
+          <div className="max-w-4xl mx-auto mt-12">
+            <h2 className="text-2xl font-bold mb-6">Current Playlist ({playlist.length} songs)</h2>
+            <div className="space-y-2">
+              {playlist.slice(0, 10).map((video, index) => (
+                <Card 
+                  key={`playlist-${index}`}
+                  className={`cursor-pointer bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 ${
+                    index === currentIndex ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/50' : ''
+                  }`}
+                  onClick={() => playVideo(video, index)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-16 h-12 object-cover rounded"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-white text-sm line-clamp-1">{video.title}</h4>
+                        <p className="text-gray-300 text-xs">{video.channel}</p>
+                      </div>
+                      <span className="text-gray-400 text-xs">{video.duration}</span>
+                      {index === currentIndex && isPlaying && (
+                        <div className="w-4 h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full animate-pulse" />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {playlist.length > 10 && (
+                <p className="text-center text-gray-400 text-sm mt-4">
+                  ...and {playlist.length - 10} more songs
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -507,7 +689,7 @@ const Index = () => {
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎼</div>
             <h3 className="text-2xl font-semibold mb-2">Start Your Musical Journey</h3>
-            <p className="text-gray-400">Search for your favorite songs to get started</p>
+            <p className="text-gray-400">Search for your favorite songs and discover new music</p>
           </div>
         )}
 
